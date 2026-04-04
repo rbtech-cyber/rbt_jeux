@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBTech Arcade</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --panel: #0f0f1a;
+    --border: #1a1a2e;
+    --neon-cyan: #00f5ff;
+    --neon-pink: #ff006e;
+    --neon-yellow: #ffe600;
+    --neon-green: #39ff14;
+    --text: #e0e0ff;
+    --dim: #555577;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* Scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* CRT vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 3rem 1rem 1.5rem;
+  }
+
+  .insert-coin {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.5rem;
+    color: var(--neon-pink);
+    letter-spacing: 0.3em;
+    animation: blink 1.2s step-end infinite;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(1.2rem, 5vw, 2.5rem);
+    color: var(--neon-cyan);
+    text-shadow:
+      0 0 10px var(--neon-cyan),
+      0 0 30px var(--neon-cyan),
+      0 0 60px rgba(0,245,255,0.4);
+    line-height: 1.4;
+    letter-spacing: 0.05em;
+  }
+
+  .title span {
+    color: var(--neon-pink);
+    text-shadow:
+      0 0 10px var(--neon-pink),
+      0 0 30px var(--neon-pink),
+      0 0 60px rgba(255,0,110,0.4);
+  }
+
+  .subtitle {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* Divider */
+  .divider {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 700px;
+    margin: 0 auto 2.5rem;
+    padding: 0 2rem;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  }
+  .divider span {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.45rem;
+    color: var(--neon-cyan);
+    white-space: nowrap;
+  }
+
+  /* Game grid */
+  .arcade-grid {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+  }
+
+  .game-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    text-decoration: none;
+    display: block;
+    position: relative;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    animation: fadeIn 0.5s ease both;
+  }
+
+  .game-card:nth-child(1) { animation-delay: 0.1s; }
+  .game-card:nth-child(2) { animation-delay: 0.2s; }
+  .game-card:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .game-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(0,245,255,0.15), 0 0 40px rgba(0,245,255,0.05);
+  }
+
+  .game-card:hover .card-accent { width: 100%; }
+  .game-card:hover .play-btn { color: var(--neon-yellow); border-color: var(--neon-yellow); box-shadow: 0 0 12px rgba(255,230,0,0.3); }
+
+  .card-accent {
+    height: 3px;
+    width: 40%;
+    transition: width 0.3s ease;
+  }
+
+  .card-body {
+    padding: 1.5rem;
+  }
+
+  .game-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 8px rgba(0,245,255,0.5));
+  }
+
+  .game-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.6rem;
+    color: #fff;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+  }
+
+  .game-desc {
+    font-size: 0.7rem;
+    color: var(--dim);
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+  }
+
+  .game-tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem;
+  }
+
+  .tag {
+    font-size: 0.55rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.05);
+    color: var(--dim);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .play-btn {
+    display: inline-block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.5rem;
+    color: var(--neon-cyan);
+    border: 1px solid var(--neon-cyan);
+    padding: 0.5rem 1rem;
+    letter-spacing: 0.1em;
+    transition: all 0.15s ease;
+  }
+
+  /* Coming soon card */
+  .game-card.soon {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .game-card.soon .game-icon { filter: grayscale(1); }
+
+  /* Footer */
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  footer span {
+    color: var(--neon-pink);
+  }
+
+  /* Score bar top */
+  .score-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  .score-bar .live {
+    color: var(--neon-green);
+    animation: blink 1.5s step-end infinite;
+  }
+
+  @media (max-width: 480px) {
+    .arcade-grid { grid-template-columns: 1fr; }
+    .title { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="score-bar">
+  <span>RBTECH-CYBER</span>
+  <span class="live">● LIVE</span>
+  <span>ARCADE v1.0</span>
+</div>
+
+<header>
+  <span class="insert-coin">▶ INSERT COIN TO PLAY ◀</span>
+  <div class="title">RB<span>TECH</span><br>ARCADE</div>
+  <p class="subtitle">Jeux HTML — Collection personnelle</p>
+</header>
+
+<div class="divider"><span>// SELECT YOUR GAME //</span></div>
+
+<div class="arcade-grid">
+
+  <!-- Jeu 1 : Marble Labyrinth -->
+  <a class="game-card" href="marble-labyrinth_2.html">
+    <div class="card-accent" style="background: linear-gradient(90deg, #00f5ff, #ff006e);"></div>
+    <div class="card-body">
+      <span class="game-icon">🔮</span>
+      <div class="game-title">MARBLE<br>LABYRINTH</div>
+      <p class="game-desc">Guidez la bille à travers le labyrinthe. Testez vos réflexes et votre précision.</p>
+      <div class="game-tags">
+        <span class="tag">RÉFLEXES</span>
+        <span class="tag">LABYRINTHE</span>
+        <span class="tag">1 JOUEUR</span>
+      </div>
+      <span class="play-btn">▶ JOUER</span>
+    </div>
+  </a>
+
+  <!-- Slot 2 : à compléter -->
+  <div class="game-card soon">
+    <div class="card-accent" style="background: linear-gradient(90deg, #ffe600, #39ff14);"></div>
+    <div class="card-body">
+      <span class="game-icon">❓</span>
+      <div class="game-title">BIENTÔT<br>DISPONIBLE</div>
+      <p class="game-desc">Un nouveau jeu arrive dans cette arcade...</p>
+      <div class="game-tags">
+        <span class="tag">COMING SOON</span>
+      </div>
+      <span class="play-btn">// LOCKED //</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  RBTECH-CYBER &nbsp;|&nbsp; <span>GITHUB PAGES</span> &nbsp;|&nbsp; ALL GAMES HTML STANDALONE
+</footer>
+
+</body>
+</html>
