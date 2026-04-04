@@ -9,3 +9,5 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/sport-timer_v2.html>
 
+<https://rbtech-cyber.github.io/Rbt_jeux/poulets-musiciens-v2.html>
+
