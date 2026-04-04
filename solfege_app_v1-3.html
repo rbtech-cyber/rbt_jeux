@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solfège – Grand Staff</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f5f0e8;--sur:#fff;--sur2:#ede8df;--bor:#d4ccc0;--tx:#1a1612;--tx2:#6b6258;--acc:#c0392b;
+    --st:#2c2420;--std:#ccc5bc;--nt:#1a1612;--ntd:#ddd6cc;--ok:#27ae60;--err:#e74c3c;
+    --ld:#888;--ldd:#ddd;--btn:#1a1612;--btnt:#f5f0e8;--sh:0 4px 28px rgba(0,0,0,.10);
+    --bs:#1a5c35;--bf:#1a3a6b;}
+  [data-theme=dark]{--bg:#18120e;--sur:#26190f;--sur2:#1e1510;--bor:#3a2a1f;--tx:#f0e8d8;--tx2:#a08878;
+    --acc:#e05c4a;--st:#d4c8b8;--std:#3a2a1f;--nt:#f0e8d8;--ntd:#2a1e14;--ok:#2ecc71;--err:#e74c3c;
+    --ld:#9a8a7a;--ldd:#2a1e14;--btn:#f0e8d8;--btnt:#18120e;--sh:0 4px 28px rgba(0,0,0,.45);
+    --bs:#1e7a42;--bf:#1e4a8a;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;transition:background .3s,color .3s}
+  header{width:100%;max-width:800px;display:flex;align-items:center;justify-content:space-between;padding:22px 24px 0}
+  .ttl{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--tx)}
+  .ttl span{color:var(--acc)}
+  .tbtn{background:var(--sur);border:1.5px solid var(--bor);border-radius:50px;padding:6px 14px;
+    cursor:pointer;font-size:.9rem;color:var(--tx2);transition:all .2s}
+  .tbtn:hover{border-color:var(--acc);color:var(--acc)}
+  .ctrl{width:100%;max-width:800px;padding:14px 24px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  select{background:var(--sur);border:1.5px solid var(--bor);border-radius:8px;padding:7px 14px;
+    font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;color:var(--tx);cursor:pointer;
+    outline:none;min-width:210px;transition:border-color .18s}
+  select:hover,select:focus{border-color:var(--acc)}
+  select option,select optgroup{background:var(--sur);color:var(--tx)}
+  .sep{flex:1}
+  .sco{display:flex;gap:10px}
+  .bdg{background:var(--sur);border:1.5px solid var(--bor);border-radius:8px;padding:5px 13px;font-size:.85rem;font-weight:500}
+  .bdg strong{color:var(--acc)}
+  .sw{width:100%;max-width:800px;padding:14px 24px 0}
+  .card{background:var(--sur);border-radius:16px;box-shadow:var(--sh);border:1.5px solid var(--bor);
+    padding:14px 20px 16px;display:flex;flex-direction:column;align-items:center;position:relative}
+  .cbdg{position:absolute;top:12px;right:14px;font-size:.72rem;font-weight:700;letter-spacing:.4px;
+    padding:4px 12px;border-radius:20px;color:#fff;transition:all .25s}
+  .cbdg.sol{background:var(--bs)}.cbdg.fa{background:var(--bf)}
+  svg#gs{width:100%;max-width:640px}
+  .ar{display:flex;align-items:center;gap:16px;margin-top:10px}
+  .nd{font-family:'Playfair Display',serif;font-size:1.85rem;color:var(--tx);letter-spacing:1px;
+    min-width:80px;text-align:center;min-height:40px}
+  .nd.ok{color:var(--ok)}.nd.er{color:var(--err)}
+  .nl{font-size:.73rem;color:var(--tx2);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+  .ka{width:100%;max-width:800px;padding:14px 24px 0}
+  .kt{font-size:.73rem;font-weight:500;color:var(--tx2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+  .kw{display:flex;gap:8px;flex-wrap:wrap}
+  .nb{flex:1;min-width:56px;max-width:86px;aspect-ratio:1;border-radius:12px;border:2px solid var(--bor);
+    background:var(--sur);cursor:pointer;font-family:'Playfair Display',serif;font-size:1.15rem;
+    font-weight:700;color:var(--tx);transition:all .15s;display:flex;align-items:center;
+    justify-content:center;flex-direction:column;gap:1px}
+  .nb .ac{font-size:.88rem;color:var(--acc);line-height:1}
+  .nb:hover{border-color:var(--acc);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+  .nb.ok2{background:var(--ok)!important;border-color:var(--ok)!important;color:#fff!important}
+  .nb.er2{background:var(--err)!important;border-color:var(--err)!important;color:#fff!important;animation:shk .3s}
+  @keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .bot{width:100%;max-width:800px;padding:12px 24px 26px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .ab{background:var(--btn);color:var(--btnt);border:none;border-radius:10px;padding:10px 24px;
+    font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer;transition:opacity .18s,transform .15s}
+  .ab:hover{opacity:.82;transform:translateY(-1px)}
+  .rb{background:var(--sur);color:var(--tx2);border:1.5px solid var(--bor);border-radius:10px;padding:9px 20px;
+    font-family:'DM Sans',sans-serif;font-size:.9rem;cursor:pointer;transition:all .18s}
+  .rb:hover{border-color:var(--acc);color:var(--acc)}
+  .ml{margin-left:auto;font-size:.77rem;color:var(--tx2);background:var(--sur);border:1.5px solid var(--bor);border-radius:8px;padding:5px 12px}
+  .ip{width:100%;max-width:800px;padding:0 24px 12px}
+  .it{font-size:.79rem;color:var(--tx2);line-height:1.6;background:var(--sur2);border-radius:10px;padding:8px 14px;border:1px solid var(--bor);min-height:16px}
+  @media(max-width:560px){.card{padding:10px 4px 12px}.nb{min-width:44px;font-size:1rem}.ttl{font-size:1.2rem}}
+</style>
+</head>
+<body>
+<header>
+  <div class="ttl">Sol<span>fège</span> — Grand Staff</div>
+  <button class="tbtn" id="themeBtn">🌙 Sombre</button>
+</header>
+<div class="ctrl">
+  <select id="scSel" onchange="setScale(this.value)">
+    <optgroup label="── Toutes ──">
+      <option value="all">Toutes les notes</option>
+    </optgroup>
+    <optgroup label="── Gammes majeures ──">
+      <option value="do_maj" selected>Do majeur</option>
+      <option value="sol_maj">Sol majeur</option>
+      <option value="re_maj">Ré majeur</option>
+      <option value="la_maj">La majeur</option>
+      <option value="mi_maj">Mi majeur</option>
+      <option value="si_maj">Si majeur</option>
+      <option value="fa_maj">Fa majeur</option>
+      <option value="sib_maj">Si♭ majeur</option>
+      <option value="mib_maj">Mi♭ majeur</option>
+      <option value="lab_maj">La♭ majeur</option>
+    </optgroup>
+    <optgroup label="── Gammes mineures naturelles ──">
+      <option value="la_min">La mineur nat.</option>
+      <option value="mi_min">Mi mineur nat.</option>
+      <option value="si_min">Si mineur nat.</option>
+      <option value="re_min">Ré mineur nat.</option>
+      <option value="sol_min">Sol mineur nat.</option>
+      <option value="do_min">Do mineur nat.</option>
+      <option value="fa_min">Fa mineur nat.</option>
+    </optgroup>
+    <optgroup label="── Modes ──">
+      <option value="dorien">Dorien (Ré)</option>
+      <option value="phrygien">Phrygien (Mi)</option>
+      <option value="lydien">Lydien (Fa)</option>
+      <option value="mixolydien">Mixolydien (Sol)</option>
+      <option value="locrien">Locrien (Si)</option>
+    </optgroup>
+    <optgroup label="── Pentatoniques ──">
+      <option value="penta_maj">Pentatonique majeure (Do)</option>
+      <option value="penta_min">Pentatonique mineure (La)</option>
+    </optgroup>
+  </select>
+  <div class="sep"></div>
+  <div class="sco">
+    <div class="bdg">✓ <strong id="sc-ok">0</strong></div>
+    <div class="bdg">✗ <strong id="sc-err">0</strong></div>
+  </div>
+</div>
+<div class="sw">
+  <div class="card">
+    <div class="cbdg sol" id="clefBdg">𝄞 Clé de Sol</div>
+    <svg id="gs" viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="ar">
+      <div class="nd" id="nd">?</div>
+      <div class="nl" id="nl">Quelle est cette note ?</div>
+    </div>
+  </div>
+</div>
+<div class="ka">
+  <div class="kt">Choisissez la note</div>
+  <div class="kw" id="kw"></div>
+</div>
+<div class="bot">
+  <button class="ab" onclick="nextNote()">Note suivante →</button>
+  <button class="rb" onclick="reveal()">Révéler</button>
+  <div class="ml" id="ml">Do majeur</div>
+</div>
+<div class="ip"><div class="it" id="it"></div></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// GÉOMÉTRIE DE LA PORTÉE
+// ══════════════════════════════════════════════════════════════
+/*
+  Choix de conception :
+  - Espacement entre lignes : E = 16 px
+  - Un "pas" note = E/2 = 8 px (distance ligne→espace suivant)
+  - Portée SOL : ligne 1 (Mi4) à y=152  → ligne 5 (Fa5) à y=152-4×16=88
+  - Portée FA  : ligne 1 (Sol2) à y=288 → ligne 5 (La3) à y=288-4×16=224
+
+  Clé de Sol : la boucle doit s'accrocher sur la LIGNE 2 (Sol4, y=136).
+  Clé de Fa  : le point de la clé doit être sur la LIGNE 4 (Fa3, y=256).
+
+  Pour la clé de Sol (𝄞) en font-size=80 avec font-family serif :
+    Le glyphe descend environ 0.35×fs sous la baseline et monte 1.1×fs au dessus.
+    On veut que la boucle (environ baseline - 0.1×fs) soit à y=136 (ligne 2 Sol4).
+    Donc baseline (y attr) ≈ 136 + 0.1×80 = 144 → on ajuste à y=148 (test empirique).
+    On décale x pour que la clé commence bien après le début des lignes.
+
+  Pour la clé de Fa (𝄢) en font-size=44 :
+    Le centre du glyphe (les deux points) est à environ baseline - 0.6×fs.
+    On veut ce centre à y=256 (ligne 4, Fa3).
+    Donc baseline ≈ 256 + 0.6×44 = 282 → on place y=276 (ajustement).
+*/
+
+const E = 16;          // espace entre lignes
+const S = E / 2;       // pas de note (8px)
+
+// Portée Sol : ligne 1 (Mi4) à y0=152
+const Y0_SOL = 152;
+// Portée Fa  : ligne 1 (Sol2) à y0=288
+const Y0_FA  = 288;
+
+// y de la ligne i (i=0 bas, i=4 haut) d'une portée
+const Ly = (y0, i) => y0 - i * E;
+// y d'une note à la position `pos` (pos=0 = ligne 1)
+const Ny = (y0, pos) => y0 - pos * S;
+
+const X1 = 58;         // x gauche lignes
+const X2 = 585;        // x droite lignes
+const X_CLEF = 68;     // x de la clef
+const X_ARM  = 150;    // x début armure
+const ARM_STP = 13;    // pas horizontal armure
+const X_NOTE_DEF = 380;// x note par défaut
+
+// ══════════════════════════════════════════════════════════════
+// DONNÉES
+// ══════════════════════════════════════════════════════════════
+
+const SOL_NOTES=[
+  {fr:'Do',oct:4,pos:-2,clef:'sol',info:'Do4 — 2e ligne supp. basse (clé de Sol)'},
+  {fr:'Ré',oct:4,pos:-1,clef:'sol',info:'Ré4 — 1re ligne supp. basse (clé de Sol)'},
+  {fr:'Mi',oct:4,pos: 0,clef:'sol',info:'Mi4 — 1re ligne (clé de Sol)'},
+  {fr:'Fa',oct:4,pos: 1,clef:'sol',info:'Fa4 — 1er interligne (clé de Sol)'},
+  {fr:'Sol',oct:4,pos:2,clef:'sol',info:'Sol4 — 2e ligne (clé de Sol)'},
+  {fr:'La',oct:4,pos: 3,clef:'sol',info:'La4 — 2e interligne (clé de Sol)'},
+  {fr:'Si',oct:4,pos: 4,clef:'sol',info:'Si4 — 3e ligne, milieu (clé de Sol)'},
+  {fr:'Do',oct:5,pos: 5,clef:'sol',info:'Do5 — 3e interligne (clé de Sol)'},
+  {fr:'Ré',oct:5,pos: 6,clef:'sol',info:'Ré5 — 4e ligne (clé de Sol)'},
+  {fr:'Mi',oct:5,pos: 7,clef:'sol',info:'Mi5 — 4e interligne (clé de Sol)'},
+  {fr:'Fa',oct:5,pos: 8,clef:'sol',info:'Fa5 — 5e ligne haute (clé de Sol)'},
+  {fr:'Sol',oct:5,pos:9,clef:'sol',info:'Sol5 — 1re ligne supp. haute (clé de Sol)'},
+];
+
+const FA_NOTES=[
+  {fr:'Sol',oct:2,pos: 0,clef:'fa',info:'Sol2 — 1re ligne (clé de Fa)'},
+  {fr:'La',oct:2, pos: 1,clef:'fa',info:'La2 — 1er interligne (clé de Fa)'},
+  {fr:'Si',oct:2, pos: 2,clef:'fa',info:'Si2 — 2e ligne (clé de Fa)'},
+  {fr:'Do',oct:3, pos: 3,clef:'fa',info:'Do3 — 2e interligne (clé de Fa)'},
+  {fr:'Ré',oct:3, pos: 4,clef:'fa',info:'Ré3 — 3e ligne, milieu (clé de Fa)'},
+  {fr:'Mi',oct:3, pos: 5,clef:'fa',info:'Mi3 — 3e interligne (clé de Fa)'},
+  {fr:'Fa',oct:3, pos: 6,clef:'fa',info:'Fa3 — 4e ligne (clé de Fa)'},
+  {fr:'Sol',oct:3,pos: 7,clef:'fa',info:'Sol3 — 4e interligne (clé de Fa)'},
+  {fr:'La',oct:3, pos: 8,clef:'fa',info:'La3 — 5e ligne haute (clé de Fa)'},
+  {fr:'Si',oct:3, pos: 9,clef:'fa',info:'Si3 — 1re ligne supp. haute (clé de Fa)'},
+  {fr:'Do',oct:4, pos:10,clef:'fa',info:'Do4 — 2e ligne supp. haute (clé de Fa)'},
+];
+
+const SCALES={
+  all:['Do','Ré','Mi','Fa','Sol','La','Si'],
+  do_maj:['Do','Ré','Mi','Fa','Sol','La','Si'],
+  sol_maj:['Sol','La','Si','Do','Ré','Mi','Fa'],
+  re_maj:['Ré','Mi','Fa','Sol','La','Si','Do'],
+  la_maj:['La','Si','Do','Ré','Mi','Fa','Sol'],
+  mi_maj:['Mi','Fa','Sol','La','Si','Do','Ré'],
+  si_maj:['Si','Do','Ré','Mi','Fa','Sol','La'],
+  fa_maj:['Fa','Sol','La','Si','Do','Ré','Mi'],
+  sib_maj:['Si','Do','Ré','Mi','Fa','Sol','La'],
+  mib_maj:['Mi','Fa','Sol','La','Si','Do','Ré'],
+  lab_maj:['La','Si','Do','Ré','Mi','Fa','Sol'],
+  la_min:['La','Si','Do','Ré','Mi','Fa','Sol'],
+  mi_min:['Mi','Fa','Sol','La','Si','Do','Ré'],
+  si_min:['Si','Do','Ré','Mi','Fa','Sol','La'],
+  re_min:['Ré','Mi','Fa','Sol','La','Si','Do'],
+  sol_min:['Sol','La','Si','Do','Ré','Mi','Fa'],
+  do_min:['Do','Ré','Mi','Fa','Sol','La','Si'],
+  fa_min:['Fa','Sol','La','Si','Do','Ré','Mi'],
+  dorien:['Ré','Mi','Fa','Sol','La','Si','Do'],
+  phrygien:['Mi','Fa','Sol','La','Si','Do','Ré'],
+  lydien:['Fa','Sol','La','Si','Do','Ré','Mi'],
+  mixolydien:['Sol','La','Si','Do','Ré','Mi','Fa'],
+  locrien:['Si','Do','Ré','Mi','Fa','Sol','La'],
+  penta_maj:['Do','Ré','Mi','Sol','La'],
+  penta_min:['La','Do','Ré','Mi','Sol'],
+};
+
+const LABELS={all:'Toutes les notes',do_maj:'Do majeur',sol_maj:'Sol majeur',re_maj:'Ré majeur',
+  la_maj:'La majeur',mi_maj:'Mi majeur',si_maj:'Si majeur',fa_maj:'Fa majeur',
+  sib_maj:'Si♭ majeur',mib_maj:'Mi♭ majeur',lab_maj:'La♭ majeur',
+  la_min:'La mineur',mi_min:'Mi mineur',si_min:'Si mineur',re_min:'Ré mineur',
+  sol_min:'Sol mineur',do_min:'Do mineur',fa_min:'Fa mineur',
+  dorien:'Dorien',phrygien:'Phrygien',lydien:'Lydien',mixolydien:'Mixolydien',locrien:'Locrien',
+  penta_maj:'Pentatonique majeure',penta_min:'Pentatonique mineure'};
+
+const ACC={all:{},do_maj:{},sol_maj:{'Fa':'#'},re_maj:{'Fa':'#','Do':'#'},
+  la_maj:{'Fa':'#','Do':'#','Sol':'#'},mi_maj:{'Fa':'#','Do':'#','Sol':'#','Ré':'#'},
+  si_maj:{'Fa':'#','Do':'#','Sol':'#','Ré':'#','La':'#'},
+  fa_maj:{'Si':'b'},sib_maj:{'Si':'b','Mi':'b'},mib_maj:{'Si':'b','Mi':'b','La':'b'},
+  lab_maj:{'Si':'b','Mi':'b','La':'b','Ré':'b'},la_min:{},mi_min:{'Fa':'#'},
+  si_min:{'Fa':'#','Do':'#'},re_min:{'Si':'b'},sol_min:{'Si':'b','Mi':'b'},
+  do_min:{'Si':'b','Mi':'b','La':'b'},fa_min:{'Si':'b','Mi':'b','La':'b','Ré':'b'},
+  dorien:{'Si':'b'},phrygien:{'Si':'b','Mi':'b'},lydien:{'Fa':'#'},mixolydien:{'Si':'b'},
+  locrien:{'Si':'b','Mi':'b','La':'b','Ré':'b'},penta_maj:{},penta_min:{}};
+
+// Armure — tableaux ordonnés [nom, pos] pour chaque portée
+// Clé de Sol (pos depuis ligne 1 = Mi4) :
+const ARM_SOL={
+  s:[['Fa',8],['Do',5],['Sol',9],['Ré',6],['La',3],['Mi',7],['Si',4]],
+  f:[['Si',4],['Mi',7],['La',3],['Ré',6],['Sol',2],['Do',5],['Fa',1]]
+};
+// Clé de Fa (pos depuis ligne 1 = Sol2) :
+const ARM_FA={
+  s:[['Fa',6],['Do',3],['Sol',7],['Ré',4],['La',1],['Mi',5],['Si',2]],
+  f:[['Si',2],['Mi',5],['La',1],['Ré',4],['Sol',0],['Do',3],['Fa',-1]]
+};
+
+const KEY_SIGS={all:{s:[],f:[]},do_maj:{s:[],f:[]},
+  sol_maj:{s:['Fa'],f:[]},re_maj:{s:['Fa','Do'],f:[]},
+  la_maj:{s:['Fa','Do','Sol'],f:[]},mi_maj:{s:['Fa','Do','Sol','Ré'],f:[]},
+  si_maj:{s:['Fa','Do','Sol','Ré','La'],f:[]},
+  fa_maj:{s:[],f:['Si']},sib_maj:{s:[],f:['Si','Mi']},
+  mib_maj:{s:[],f:['Si','Mi','La']},lab_maj:{s:[],f:['Si','Mi','La','Ré']},
+  la_min:{s:[],f:[]},mi_min:{s:['Fa'],f:[]},si_min:{s:['Fa','Do'],f:[]},
+  re_min:{s:[],f:['Si']},sol_min:{s:[],f:['Si','Mi']},do_min:{s:[],f:['Si','Mi','La']},
+  fa_min:{s:[],f:['Si','Mi','La','Ré']},dorien:{s:[],f:['Si']},phrygien:{s:[],f:['Si','Mi']},
+  lydien:{s:['Fa'],f:[]},mixolydien:{s:[],f:['Si']},locrien:{s:[],f:['Si','Mi','La','Ré']},
+  penta_maj:{s:[],f:[]},penta_min:{s:[],f:[]}};
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let scale='do_maj',cur=null,answered=false,ok=0,er=0;
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function getPool(){
+  const al=SCALES[scale];
+  const both=[...SOL_NOTES,...FA_NOTES];
+  return scale==='all'?both:both.filter(n=>al.includes(n.fr));
+}
+
+function pickNote(){
+  const p=getPool();if(!p.length)return null;
+  let n;
+  do{n=p[Math.floor(Math.random()*p.length)];}
+  while(p.length>1&&cur&&n.fr===cur.fr&&n.oct===cur.oct&&n.clef===cur.clef);
+  return n;
+}
+
+function accSym(name){const a=(ACC[scale]||{})[name];return a==='#'?'♯':a==='b'?'♭':'';}
+function dispName(n){
+  const a=(ACC[scale]||{})[n.fr];const s=a==='#'?'♯':a==='b'?'♭':'';
+  return n.fr+s+'<small style="font-size:.55em;opacity:.6">'+n.oct+'</small>';}
+
+// ══════════════════════════════════════════════════════════════
+// SVG
+// ══════════════════════════════════════════════════════════════
+const NS='http://www.w3.org/2000/svg';
+function mk(tag,a){const e=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e;}
+function ln(svg,x1,y1,x2,y2,stroke,sw){svg.appendChild(mk('line',{x1,y1,x2,y2,stroke,'stroke-width':sw}));}
+function tx(svg,t,x,y,sz,fam,fill,anc='start',fw='normal'){
+  const e=mk('text',{x,y,'font-size':sz,'font-family':fam,fill,'text-anchor':anc,'font-weight':fw});
+  e.textContent=t;svg.appendChild(e);}
+
+function draw5(svg,y0,color){for(let i=0;i<5;i++)ln(svg,X1,Ly(y0,i),X2,Ly(y0,i),color,1.5);}
+
+function drawArm(svg,ks,arm,y0,color){
+  const list=ks.s.length?ks.s:ks.f;
+  const armArr=ks.s.length?arm.s:arm.f;
+  const sym2=ks.s.length?'♯':'♭';
+  const sz=ks.s.length?15:17;
+  const dy=ks.s.length?5:7;
+  // map nom→pos depuis le tableau
+  const posOf=Object.fromEntries(armArr);
+  let endX=X_ARM;
+  list.forEach((name,i)=>{
+    const x=X_ARM+i*ARM_STP;
+    const y=Ny(y0,posOf[name])+dy;
+    tx(svg,sym2,x,y,sz,'serif',color,'middle','bold');
+    endX=x+ARM_STP;
+  });
+  return list.length?endX+6:X_ARM;
+}
+
+function drawNoteHead(svg,note,y0,nx,cNote,cLedg){
+  const ny=Ny(y0,note.pos);
+
+  // Lignes supplémentaires basses (pos < 0, sur les lignes = pos pair)
+  for(let p=-2;p<=note.pos-1&&p<0;p++)
+    if(p%2===0)ln(svg,nx-18,Ny(y0,p),nx+18,Ny(y0,p),cLedg,1.8);
+
+  // Lignes supplémentaires hautes (pos > 8, sur les lignes = pos pair)
+  for(let p=10;p>=note.pos+1&&p>8;p--)
+    if(p%2===0)ln(svg,nx-18,Ny(y0,p),nx+18,Ny(y0,p),cLedg,1.8);
+
+  // Altération
+  const ac=(ACC[scale]||{})[note.fr];
+  if(ac){
+    const s2=ac==='#'?'♯':'♭';const sz2=ac==='#'?16:19;const dy=ac==='#'?5:7;
+    tx(svg,s2,nx-22,ny+dy,sz2,'serif',cNote,'middle','bold');
+  }
+
+  // Tête
+  svg.appendChild(mk('ellipse',{cx:nx,cy:ny,rx:10,ry:7,fill:cNote,transform:`rotate(-15,${nx},${ny})`}));
+
+  // Hampe
+  if(note.pos<5)ln(svg,nx+8,ny,nx+8,ny-52,cNote,1.9);
+  else ln(svg,nx-8,ny,nx-8,ny+52,cNote,1.9);
+}
+
+function drawAll(){
+  const svg=document.getElementById('gs');
+  svg.innerHTML='';
+
+  const cST=css('--st'),cD=css('--std'),cN=css('--nt'),cND=css('--ntd'),cL=css('--ld'),cLD=css('--ldd');
+
+  const isSol=cur&&cur.clef==='sol';
+  const isFa =cur&&cur.clef==='fa';
+
+  // Couleurs
+  const cSol=isSol?cST:cD;
+  const cFa =isFa ?cST:cD;
+
+  const ks=KEY_SIGS[scale]||{s:[],f:[]};
+
+  // ── Barre gauche et accolade ─────────────────────────
+  const topY=Ly(Y0_SOL,4);
+  const botY=Ly(Y0_FA, 0);
+  ln(svg,X1,topY,X1,botY,cST,2.8);
+
+  // Accolade — chemin SVG (plus fidèle qu'un glyphe unicode incertain)
+  // On dessine une accolade avec un path SVG custom
+  const midY=(topY+botY)/2;
+  const bh=(botY-topY);
+  const bx=X1-14;
+  // Accolade en path : deux arcs symétriques
+  const path=mk('path',{
+    d:`M ${bx} ${topY} C ${bx-16} ${topY+bh*0.1}, ${bx+8} ${midY-12}, ${bx} ${midY} C ${bx+8} ${midY+12}, ${bx-16} ${botY-bh*0.1}, ${bx} ${botY}`,
+    fill:'none',stroke:cST,'stroke-width':'2.5'
+  });
+  svg.appendChild(path);
+
+  // Barre finale droite (double)
+  ln(svg,X2,  topY,X2,  botY,cST,1.5);
+  ln(svg,X2+5,topY,X2+5,botY,cST,5);
+
+  // ══ PORTÉE SOL ══════════════════════════════════════
+  draw5(svg,Y0_SOL,cSol);
+
+  // Clé de Sol : la boucle doit reposer sur la ligne 2 (Sol4) = Ly(Y0_SOL,1) = y0-E = 152-16=136
+  // Avec le glyphe Unicode 𝄞 en font-size=80 serif, la boucle est approximativement
+  // à (y_baseline - 0.08 * font_size). On veut boucle à y=136 → baseline ≈ 136+6 = 142.
+  // On descend encore un peu pour tenir compte des variations de rendu → y=148.
+  // La clé s'étend verticalement : du bas (une ligne supp. sous la portée) jusqu'au-dessus.
+  const ySolClef = Ly(Y0_SOL, 1) + 12; // ligne 2 (Sol4) + offset empirique
+  tx(svg,'𝄞',X_CLEF,ySolClef,80,'serif',cSol);
+
+  // Armure
+  const aeS=drawArm(svg,ks,ARM_SOL,Y0_SOL,cSol);
+  const xNS=Math.max(X_NOTE_DEF,aeS+28);
+
+  // Note
+  if(isSol) drawNoteHead(svg,cur,Y0_SOL,xNS,cN,cL);
+
+  // Label discret
+  tx(svg,'clé de Sol',X2+8,Ly(Y0_SOL,2),9,'DM Sans,sans-serif',cSol,'start','400');
+
+  // ══ PORTÉE FA ═══════════════════════════════════════
+  draw5(svg,Y0_FA,cFa);
+
+  // Clé de Fa : le point (.) doit être sur la ligne 4 (Fa3) = Ly(Y0_FA,3) = 288-3×16=240
+  // Le glyphe 𝄢 en font-size=46 : son centre visuel est à ≈ baseline - 0.55*fs.
+  // On veut centre à y=240 → baseline = 240 + 0.55*46 ≈ 265.
+  const yFaClef = Ly(Y0_FA, 3) + 26; // ligne 4 (Fa3) + offset empirique
+  tx(svg,'𝄢',X_CLEF,yFaClef,46,'serif',cFa);
+
+  // Les deux points de la clé de Fa sont à droite du glyphe.
+  // Le glyphe 𝄢 les inclut nativement, positionnés sur lignes 3 et 4.
+  // On ajoute des points SVG explicites pour garantir la position exacte :
+  const xPts=X_CLEF+38;
+  // Point haut : ligne 4+1 = pos 7 (Sol3) en clé de Fa → ligne 4 = pos 6, donc pos 7 = un espace au dessus
+  // En réalité les points sont à ligne 4 et espace au-dessus (selon édition standard)
+  // ligne 4 : Ly(Y0_FA,3)=240 ; espace ligne4-5 : Ly(Y0_FA,3)-S=232
+  svg.appendChild(mk('circle',{cx:xPts,cy:Ly(Y0_FA,3)-4,r:3.5,fill:cFa}));
+  svg.appendChild(mk('circle',{cx:xPts,cy:Ly(Y0_FA,4)+4,r:3.5,fill:cFa}));
+
+  // Armure
+  const aeF=drawArm(svg,ks,ARM_FA,Y0_FA,cFa);
+  const xNF=Math.max(X_NOTE_DEF,aeF+28);
+
+  // Note
+  if(isFa) drawNoteHead(svg,cur,Y0_FA,xNF,cN,cL);
+
+  // Label discret
+  tx(svg,'clé de Fa',X2+8,Ly(Y0_FA,2),9,'DM Sans,sans-serif',cFa,'start','400');
+}
+
+// ══════════════════════════════════════════════════════════════
+// BOUTONS
+// ══════════════════════════════════════════════════════════════
+function buildBtns(){
+  const p=getPool();const seen=new Set();const names=[];
+  for(const n of p){if(!seen.has(n.fr)){seen.add(n.fr);names.push(n.fr);}}
+  const ord=['Do','Ré','Mi','Fa','Sol','La','Si'];
+  names.sort((a,b)=>ord.indexOf(a)-ord.indexOf(b));
+  const c=document.getElementById('kw');c.innerHTML='';
+  for(const name of names){
+    const s=accSym(name);const b=document.createElement('button');
+    b.className='nb';b.id='b-'+name;
+    b.innerHTML=`<span>${name}</span>${s?`<span class="ac">${s}</span>`:''}`;
+    b.onclick=()=>checkAns(name);c.appendChild(b);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// JEU
+// ══════════════════════════════════════════════════════════════
+function nextNote(){
+  answered=false;cur=pickNote();drawAll();updBadge();
+  document.getElementById('nd').textContent='?';
+  document.getElementById('nd').className='nd';
+  document.getElementById('nl').textContent='Quelle est cette note ?';
+  document.getElementById('it').textContent='';
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('ok2','er2'));
+  buildBtns();
+}
+
+function checkAns(name){
+  if(answered||!cur)return;
+  const btn=document.getElementById('b-'+name);
+  if(name===cur.fr){
+    answered=true;ok++;
+    document.getElementById('sc-ok').textContent=ok;
+    document.getElementById('nd').innerHTML=dispName(cur);
+    document.getElementById('nd').className='nd ok';
+    document.getElementById('nl').textContent='✓ Bonne réponse !';
+    document.getElementById('it').textContent=cur.info;
+    if(btn)btn.classList.add('ok2');
+    setTimeout(nextNote,1400);
+  }else{
+    er++;document.getElementById('sc-err').textContent=er;
+    document.getElementById('nl').textContent='✗ Essayez encore…';
+    if(btn){btn.classList.add('er2');setTimeout(()=>btn.classList.remove('er2'),350);}
+  }
+}
+
+function reveal(){
+  if(!cur)return;answered=true;
+  document.getElementById('nd').innerHTML=dispName(cur);
+  document.getElementById('nd').className='nd er';
+  document.getElementById('nl').textContent='Note révélée';
+  document.getElementById('it').textContent=cur.info;
+  const btn=document.getElementById('b-'+cur.fr);if(btn)btn.classList.add('ok2');
+}
+
+function updBadge(){
+  const b=document.getElementById('clefBdg');if(!cur)return;
+  b.textContent=cur.clef==='sol'?'𝄞 Clé de Sol':'𝄢 Clé de Fa';
+  b.className='cbdg '+(cur.clef==='sol'?'sol':'fa');
+}
+
+function setScale(s){
+  scale=s;document.getElementById('ml').textContent=LABELS[s]||s;nextNote();
+}
+
+let dark=false;
+document.getElementById('themeBtn').onclick=()=>{
+  dark=!dark;
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  document.getElementById('themeBtn').textContent=dark?'☀️ Clair':'🌙 Sombre';
+  drawAll();
+};
+
+nextNote();
+document.getElementById('ml').textContent=LABELS['do_maj'];
+</script>
+</body>
+</html>
