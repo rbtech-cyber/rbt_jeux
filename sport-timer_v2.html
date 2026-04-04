@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f" id="meta-theme-color">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>INTERVAL — Sport Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:#0a0a0f; --surface:#13131a; --surface2:#1c1c28; --border:#2a2a3a;
+    --text:#f0f0f8; --muted:#6b6b88;
+    --sport:#ff4d6d; --pause:#4ecdc4; --finish:#f7c59f; --success:#6bcb77;
+    --nav-bg:rgba(10,10,15,0.95);
+    --finish-overlay-bg:rgba(10,10,15,0.97);
+  }
+  [data-theme="light"] {
+    --bg:#f2f2f7; --surface:#ffffff; --surface2:#e8e8f0; --border:#d0d0e0;
+    --text:#1a1a2e; --muted:#7070a0;
+    --sport:#e8294a; --pause:#2ab5ab; --finish:#d4924a; --success:#3a9e4a;
+    --nav-bg:rgba(242,242,247,0.95);
+    --finish-overlay-bg:rgba(242,242,247,0.97);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow:hidden; transition:background .25s, color .25s; }
+
+  /* Theme toggle */
+  .theme-btn {
+    background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+    width:34px; height:34px; border-radius:50%; font-size:17px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:all .2s; flex-shrink:0;
+  }
+  .theme-btn:active { transform:scale(0.92); }
+  #app { height:100dvh; display:flex; flex-direction:column; }
+
+  .page { display:none; flex-direction:column; height:100%; overflow-y:auto; }
+  .page.active { display:flex; }
+
+  nav {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px 12px; flex-shrink:0; border-bottom:1px solid var(--border);
+    background:var(--nav-bg); backdrop-filter:blur(12px); position:sticky; top:0; z-index:10;
+  }
+  .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px; color:var(--sport); }
+  .nav-tabs { display:flex; gap:4px; }
+  .nav-tab {
+    background:none; border:none; color:var(--muted); font-family:'DM Sans',sans-serif;
+    font-size:13px; font-weight:500; padding:7px 13px; border-radius:20px; cursor:pointer; transition:all .2s;
+  }
+  .nav-tab.active { background:var(--surface2); color:var(--text); }
+
+  .config-body { padding:18px; display:flex; flex-direction:column; gap:18px; padding-bottom:40px; }
+  .section-label { font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px; }
+
+  .pill-group { display:flex; flex-wrap:wrap; gap:8px; }
+  .pill {
+    background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+    padding:7px 15px; border-radius:20px; font-size:14px; font-weight:500;
+    cursor:pointer; transition:all .2s; user-select:none;
+  }
+  .pill.sport-sel { border-color:var(--sport); color:var(--sport); background:rgba(255,77,109,0.12); }
+  .pill.pause-sel { border-color:var(--pause); color:var(--pause); background:rgba(78,205,196,0.12); }
+
+  .stepper { display:flex; align-items:center; background:var(--surface2); border:1px solid var(--border); border-radius:14px; width:fit-content; overflow:hidden; }
+  .step-btn { background:none; border:none; color:var(--text); font-size:22px; width:52px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+  .step-btn:active { background:var(--border); }
+  .step-val { font-family:'Bebas Neue',sans-serif; font-size:32px; width:60px; text-align:center; letter-spacing:2px; }
+
+  /* Sound pickers */
+  .sound-section { display:flex; flex-direction:column; gap:16px; }
+  .sound-row { display:flex; flex-direction:column; gap:8px; }
+  .sound-row-label { font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+  .dot-s { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot-s.sport { background:var(--sport); }
+  .dot-s.pause { background:var(--pause); }
+  .dot-s.finish { background:var(--finish); }
+
+  .sound-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
+  .sound-scroll::-webkit-scrollbar { height:3px; }
+  .sound-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  .snd-btn {
+    background:var(--surface2); border:1.5px solid var(--border); color:var(--muted);
+    padding:10px 12px; border-radius:12px; font-size:12px; font-weight:500;
+    cursor:pointer; transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:5px;
+    font-family:'DM Sans',sans-serif; flex-shrink:0; min-width:68px; scroll-snap-align:start;
+  }
+  .snd-btn .s-icon { font-size:20px; line-height:1; }
+  .snd-btn .s-name { font-size:10px; text-align:center; line-height:1.2; white-space:nowrap; }
+  .snd-btn.sel-sport { border-color:var(--sport); color:var(--sport); background:rgba(255,77,109,0.12); }
+  .snd-btn.sel-pause { border-color:var(--pause); color:var(--pause); background:rgba(78,205,196,0.12); }
+  .snd-btn.sel-finish { border-color:var(--finish); color:var(--finish); background:rgba(247,197,159,0.12); }
+  .snd-btn:active { transform:scale(0.95); }
+
+  .start-btn {
+    background:var(--sport); color:#fff; border:none; border-radius:16px;
+    padding:18px; font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px;
+    cursor:pointer; transition:all .2s; width:100%;
+    box-shadow:0 4px 24px rgba(255,77,109,0.35);
+  }
+  .start-btn:active { transform:scale(0.98); box-shadow:none; }
+
+  /* TIMER */
+  #page-timer { align-items:center; justify-content:center; padding:20px; text-align:center; gap:0; }
+
+  .timer-phase-label {
+    font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:5px;
+    padding:6px 20px; border-radius:20px; margin-bottom:10px; transition:all .3s;
+  }
+  .timer-phase-label.sport { background:rgba(255,77,109,0.15); color:var(--sport); border:1px solid rgba(255,77,109,0.3); }
+  .timer-phase-label.pause { background:rgba(78,205,196,0.15); color:var(--pause); border:1px solid rgba(78,205,196,0.3); }
+
+  .ring-wrap { position:relative; width:250px; height:250px; flex-shrink:0; margin:8px 0; }
+  svg.ring { transform:rotate(-90deg); }
+  circle.ring-bg { fill:none; stroke:var(--surface2); stroke-width:10; }
+  circle.ring-fg { fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .4s linear, stroke .4s; }
+  .ring-time { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; }
+  .ring-digits { font-family:'Bebas Neue',sans-serif; font-size:68px; letter-spacing:4px; line-height:1; }
+  .ring-sub { font-size:12px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; font-weight:500; }
+
+  .series-dots { display:flex; gap:8px; margin:10px 0 6px; flex-wrap:wrap; justify-content:center; }
+  .dot { width:10px; height:10px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface2); transition:all .3s; }
+  .dot.done { background:var(--sport); border-color:var(--sport); }
+  .dot.active { background:var(--sport); border-color:var(--sport); box-shadow:0 0 8px var(--sport); transform:scale(1.3); }
+
+  .next-info { font-size:13px; color:var(--muted); text-align:center; min-height:18px; }
+  .next-info span { color:var(--text); font-weight:500; }
+
+  .timer-controls { display:flex; gap:12px; margin-top:16px; width:100%; max-width:320px; }
+  .ctrl-btn { flex:1; border:none; border-radius:14px; padding:15px; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; cursor:pointer; transition:all .2s; }
+  .ctrl-btn.pause-ctrl { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .ctrl-btn.stop-ctrl  { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .ctrl-btn:active { transform:scale(0.97); }
+
+  /* Finish */
+  #finish-overlay {
+    display:none; position:fixed; inset:0; background:var(--finish-overlay-bg);
+    flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    z-index:100; padding:30px; text-align:center;
+  }
+  #finish-overlay.show { display:flex; animation:fadeIn .4s; }
+  .finish-emoji { font-size:64px; animation:bounce .6s; }
+  .finish-title { font-family:'Bebas Neue',sans-serif; font-size:38px; letter-spacing:4px; color:var(--success); }
+  .finish-stats { display:flex; gap:14px; }
+  .fstat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px 18px; text-align:center; }
+  .fstat-val { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--text); }
+  .fstat-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; font-weight:500; margin-top:3px; }
+  .finish-btns { display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; }
+  .finish-btn { border:none; border-radius:14px; padding:16px; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; cursor:pointer; transition:all .2s; }
+  .finish-btn.primary { background:var(--sport); color:#fff; box-shadow:0 4px 20px rgba(255,77,109,0.3); }
+  .finish-btn.secondary { background:var(--surface2); color:var(--muted); border:1px solid var(--border); }
+
+  /* History */
+  .history-body { padding:18px; display:flex; flex-direction:column; gap:14px; padding-bottom:40px; }
+  .history-empty { text-align:center; color:var(--muted); padding:60px 20px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+  .history-empty .big { font-size:48px; }
+  .history-item { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:15px 16px; display:flex; align-items:center; gap:13px; animation:slideIn .3s ease; }
+  .history-icon { width:40px; height:40px; border-radius:10px; background:rgba(255,77,109,0.1); border:1px solid rgba(255,77,109,0.2); display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+  .history-info { flex:1; }
+  .history-date { font-size:12px; color:var(--muted); }
+  .history-detail { font-size:14px; font-weight:600; color:var(--text); margin-top:2px; }
+  .history-badge { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:12px; color:var(--muted); font-weight:500; white-space:nowrap; }
+  .clear-btn { background:none; border:1px solid var(--border); color:var(--muted); border-radius:10px; padding:10px 16px; font-size:13px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; align-self:center; }
+  .clear-btn:active { background:var(--surface); }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+  @keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <nav>
+    <span class="nav-logo">INTERVAL</span>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="goPage('config')">Config</button>
+      <button class="nav-tab" onclick="goPage('timer')">Séance</button>
+      <button class="nav-tab" onclick="goPage('history')">Historique</button>
+    </div>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Changer le thème">🌙</button>
+  </nav>
+
+  <!-- CONFIG -->
+  <div class="page active" id="page-config">
+    <div class="config-body">
+
+      <div class="card">
+        <div class="section-label">⚡ Durée de la série (sec)</div>
+        <div class="pill-group" id="sport-time-group">
+          <div class="pill sport-sel" data-val="15" onclick="selectPill(this,'sport')">15s</div>
+          <div class="pill" data-val="20" onclick="selectPill(this,'sport')">20s</div>
+          <div class="pill" data-val="30" onclick="selectPill(this,'sport')">30s</div>
+          <div class="pill" data-val="45" onclick="selectPill(this,'sport')">45s</div>
+          <div class="pill" data-val="60" onclick="selectPill(this,'sport')">60s</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">😮‍💨 Durée de la pause (sec)</div>
+        <div class="pill-group" id="pause-time-group">
+          <div class="pill" data-val="10" onclick="selectPill(this,'pause')">10s</div>
+          <div class="pill pause-sel" data-val="15" onclick="selectPill(this,'pause')">15s</div>
+          <div class="pill" data-val="20" onclick="selectPill(this,'pause')">20s</div>
+          <div class="pill" data-val="25" onclick="selectPill(this,'pause')">25s</div>
+          <div class="pill" data-val="30" onclick="selectPill(this,'pause')">30s</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">🔁 Nombre de séries (sport + pause)</div>
+        <div class="stepper">
+          <button class="step-btn" onclick="changeSeries(-1)">−</button>
+          <div class="step-val" id="series-val">5</div>
+          <button class="step-btn" onclick="changeSeries(1)">+</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">🔔 Sons des alarmes</div>
+        <div class="sound-section">
+          <div class="sound-row">
+            <div class="sound-row-label"><span class="dot-s sport"></span><span style="color:var(--sport)">Début de sport</span></div>
+            <div class="sound-scroll" id="sounds-sport"></div>
+          </div>
+          <div class="sound-row">
+            <div class="sound-row-label"><span class="dot-s pause"></span><span style="color:var(--pause)">Début de pause</span></div>
+            <div class="sound-scroll" id="sounds-pause"></div>
+          </div>
+          <div class="sound-row">
+            <div class="sound-row-label"><span class="dot-s finish"></span><span style="color:var(--finish)">Fin de séance</span></div>
+            <div class="sound-scroll" id="sounds-finish"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="start-btn" onclick="startSession()">▶ LANCER LA SÉANCE</button>
+    </div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="page" id="page-timer">
+    <div class="timer-phase-label sport" id="phase-label">⚡ SPORT</div>
+    <div class="ring-wrap">
+      <svg class="ring" width="250" height="250" viewBox="0 0 250 250">
+        <circle class="ring-bg" cx="125" cy="125" r="110"/>
+        <circle class="ring-fg" id="ring-fg" cx="125" cy="125" r="110"
+          stroke-dasharray="691.15" stroke-dashoffset="0" stroke="var(--sport)"/>
+      </svg>
+      <div class="ring-time">
+        <div class="ring-digits" id="ring-digits">00</div>
+        <div class="ring-sub" id="ring-sub">SPORT 1/5</div>
+      </div>
+    </div>
+    <div class="series-dots" id="series-dots"></div>
+    <div class="next-info" id="next-info"></div>
+    <div class="timer-controls">
+      <button class="ctrl-btn pause-ctrl" id="pause-btn" onclick="togglePause()">⏸ PAUSE</button>
+      <button class="ctrl-btn stop-ctrl" onclick="stopSession()">⏹ STOP</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="page-history">
+    <div class="history-body" id="history-body"></div>
+  </div>
+
+</div>
+
+<div id="finish-overlay">
+  <div class="finish-emoji">🏆</div>
+  <div class="finish-title">SÉANCE TERMINÉE !</div>
+  <div class="finish-stats" id="finish-stats"></div>
+  <div class="finish-btns">
+    <button class="finish-btn primary" onclick="newSession()">↩ NOUVELLE SÉANCE</button>
+    <button class="finish-btn secondary" onclick="closeFinish()">VOIR L'HISTORIQUE</button>
+  </div>
+</div>
+
+<script>
+// ══ SOUND LIBRARY ══
+const SOUND_DEFS = [
+  { id:'beep',     icon:'📯', name:'Bip court' },
+  { id:'beep2',    icon:'📢', name:'Bip aigu' },
+  { id:'triple',   icon:'🔔', name:'Triple bip' },
+  { id:'double',   icon:'🔉', name:'Double bip' },
+  { id:'bell',     icon:'🛎️', name:'Cloche' },
+  { id:'bell2',    icon:'🔕', name:'Cloche grave' },
+  { id:'buzz',     icon:'📳', name:'Buzz grave' },
+  { id:'buzz2',    icon:'⚡', name:'Buzz court' },
+  { id:'whistle',  icon:'🎵', name:'Sifflet' },
+  { id:'whistle2', icon:'🎶', name:'Sifflet long' },
+  { id:'ding',     icon:'✨', name:'Ding doux' },
+  { id:'pop',      icon:'💧', name:'Pop' },
+  { id:'blip',     icon:'🎮', name:'Blip rétro' },
+  { id:'horn',     icon:'📣', name:'Klaxon' },
+  { id:'chime',    icon:'🎐', name:'Carillon' },
+  { id:'ping',     icon:'🏓', name:'Ping' },
+];
+
+const FINISH_DEFS = [
+  { id:'fanfare',  icon:'🏆', name:'Fanfare' },
+  { id:'victory',  icon:'🥇', name:'Victoire' },
+  { id:'ascend',   icon:'🚀', name:'Montée' },
+  { id:'tada',     icon:'🎉', name:'Tada' },
+  { id:'gong',     icon:'🪘', name:'Gong' },
+  { id:'cheer',    icon:'🙌', name:'Cloche x3' },
+  { id:'triple',   icon:'🔔', name:'Triple bip' },
+  { id:'beep',     icon:'📯', name:'Bip court' },
+];
+
+// ══ STATE ══
+const cfg = { sportTime:15, pauseTime:15, series:5, soundSport:'triple', soundPause:'ding', soundFinish:'fanfare' };
+let timerState = {};
+let wakeLock = null;
+let sessionStart = null;
+const CIRC = 2 * Math.PI * 110; // 691.15
+
+// ══ AUDIO ══
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function note(ac, freq, type, gain, start, dur) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.connect(g); g.connect(ac.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(gain, ac.currentTime + start);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + start + dur);
+  o.start(ac.currentTime + start); o.stop(ac.currentTime + start + dur + 0.05);
+}
+const soundFns = {
+  beep:    ac => note(ac, 880, 'square', 0.4, 0, 0.12),
+  beep2:   ac => note(ac, 1400, 'sine', 0.4, 0, 0.1),
+  triple:  ac => [0, 0.18, 0.36].forEach(t => note(ac, 1000, 'sine', 0.5, t, 0.12)),
+  double:  ac => [0, 0.2].forEach(t => note(ac, 900, 'sine', 0.5, t, 0.13)),
+  bell:    ac => note(ac, 660, 'sine', 0.6, 0, 0.8),
+  bell2:   ac => note(ac, 330, 'sine', 0.6, 0, 1.0),
+  buzz:    ac => note(ac, 120, 'sawtooth', 0.5, 0, 0.3),
+  buzz2:   ac => note(ac, 200, 'sawtooth', 0.5, 0, 0.15),
+  whistle: ac => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination); o.type = 'sine';
+    o.frequency.setValueAtTime(1200, ac.currentTime);
+    o.frequency.linearRampToValueAtTime(900, ac.currentTime + 0.3);
+    g.gain.setValueAtTime(0.5, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.3);
+    o.start(); o.stop(ac.currentTime + 0.35);
+  },
+  whistle2: ac => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination); o.type = 'sine';
+    o.frequency.setValueAtTime(1100, ac.currentTime);
+    o.frequency.linearRampToValueAtTime(800, ac.currentTime + 0.6);
+    g.gain.setValueAtTime(0.5, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.6);
+    o.start(); o.stop(ac.currentTime + 0.65);
+  },
+  ding:  ac => note(ac, 1400, 'sine', 0.3, 0, 0.6),
+  pop:   ac => note(ac, 600, 'sine', 0.5, 0, 0.07),
+  blip:  ac => note(ac, 440, 'square', 0.35, 0, 0.08),
+  horn:  ac => [0, 0.15].forEach(t => note(ac, 220, 'sawtooth', 0.5, t, 0.18)),
+  chime: ac => [[0,880],[0.25,1100],[0.5,1320]].forEach(([t,f]) => note(ac, f, 'sine', 0.35, t, 0.5)),
+  ping:  ac => note(ac, 2000, 'sine', 0.3, 0, 0.15),
+  // Finish
+  fanfare: ac => [[0,523],[0.15,659],[0.3,784],[0.45,1047]].forEach(([t,f]) => note(ac, f, 'sine', 0.4, t, 0.25)),
+  victory: ac => [[0,440],[0.18,554],[0.36,659],[0.54,880],[0.72,1046]].forEach(([t,f]) => note(ac, f, 'sine', 0.4, t, 0.22)),
+  ascend:  ac => [0,0.1,0.2,0.3,0.4,0.5].forEach((t,i) => note(ac, 300+i*150, 'sine', 0.4, t, 0.2)),
+  tada:    ac => { note(ac,660,'sine',0.5,0,0.08); note(ac,880,'sine',0.5,0.1,0.08); [0.2,0.35,0.5].forEach(t=>note(ac,1100,'sine',0.5,t,0.25)); },
+  gong:    ac => { const o=ac.createOscillator(),g=ac.createGain(); o.connect(g);g.connect(ac.destination); o.type='sine';o.frequency.value=180; g.gain.setValueAtTime(0.8,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+2.5); o.start();o.stop(ac.currentTime+2.5); },
+  cheer:   ac => [0,0.35,0.7].forEach(t => note(ac, 660, 'sine', 0.5, t, 0.6)),
+};
+
+function playSound(id) {
+  try {
+    const ac = getAudio();
+    if (ac.state === 'suspended') ac.resume();
+    (soundFns[id] || soundFns.beep)(ac);
+    if (navigator.vibrate) navigator.vibrate(80);
+  } catch(e) {}
+}
+
+// ══ SOUND PICKERS ══
+function buildSoundPicker(containerId, defs, cfgKey, selClass) {
+  const container = document.getElementById(containerId);
+  defs.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'snd-btn' + (cfg[cfgKey] === d.id ? ' '+selClass : '');
+    btn.dataset.sound = d.id;
+    btn.innerHTML = `<span class="s-icon">${d.icon}</span><span class="s-name">${d.name}</span>`;
+    btn.onclick = () => {
+      container.querySelectorAll('.snd-btn').forEach(b => b.classList.remove(selClass));
+      btn.classList.add(selClass);
+      cfg[cfgKey] = d.id;
+      playSound(d.id);
+    };
+    container.appendChild(btn);
+  });
+}
+
+function initSoundPickers() {
+  buildSoundPicker('sounds-sport',  SOUND_DEFS,  'soundSport',  'sel-sport');
+  buildSoundPicker('sounds-pause',  SOUND_DEFS,  'soundPause',  'sel-pause');
+  buildSoundPicker('sounds-finish', FINISH_DEFS, 'soundFinish', 'sel-finish');
+}
+
+// ══ CONFIG UI ══
+function selectPill(el, type) {
+  const id = type === 'sport' ? 'sport-time-group' : 'pause-time-group';
+  const selClass = type === 'sport' ? 'sport-sel' : 'pause-sel';
+  document.getElementById(id).querySelectorAll('.pill').forEach(p => p.classList.remove('sport-sel','pause-sel'));
+  el.classList.add(selClass);
+  cfg[type === 'sport' ? 'sportTime' : 'pauseTime'] = parseInt(el.dataset.val);
+}
+function changeSeries(d) {
+  cfg.series = Math.min(10, Math.max(1, cfg.series + d));
+  document.getElementById('series-val').textContent = cfg.series;
+}
+
+// ══ NAVIGATION ══
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const idx = ['config','timer','history'].indexOf(id);
+  if (idx >= 0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if (id === 'history') renderHistory();
+}
+
+// ══ TIMER ══
+function buildDots() {
+  const c = document.getElementById('series-dots'); c.innerHTML = '';
+  for (let i = 0; i < cfg.series; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot'+(i===0?' active':''); d.id = 'dot-'+i;
+    c.appendChild(d);
+  }
+}
+function updateRing(frac, phase) {
+  const r = document.getElementById('ring-fg');
+  r.style.strokeDashoffset = CIRC * (1 - frac);
+  r.style.stroke = phase === 'sport' ? 'var(--sport)' : 'var(--pause)';
+}
+function updatePhaseLabel(phase) {
+  const l = document.getElementById('phase-label');
+  l.className = 'timer-phase-label '+phase;
+  l.textContent = phase === 'sport' ? '⚡ SPORT' : '😮‍💨 PAUSE';
+}
+function updateNextInfo() {
+  const s = timerState, el = document.getElementById('next-info');
+  if (s.phase === 'sport') {
+    el.innerHTML = s.currentSeries < s.series-1
+      ? `Prochaine pause : <span>${s.pauseTime}s</span>`
+      : `<span>Dernière série !</span>`;
+  } else {
+    el.innerHTML = `Prochaine série : <span>${s.sportTime}s</span>`;
+  }
+}
+function updateDots(idx) {
+  for (let i = 0; i < cfg.series; i++) {
+    const d = document.getElementById('dot-'+i);
+    if (d) d.className = 'dot'+(i<idx?' done':i===idx?' active':'');
+  }
+}
+
+async function startSession() {
+  getAudio();
+  sessionStart = Date.now();
+  timerState = {
+    running:true, paused:false, phase:'sport', currentSeries:0,
+    timeLeft:cfg.sportTime, interval:null,
+    sportTime:cfg.sportTime, pauseTime:cfg.pauseTime, series:cfg.series,
+    soundSport:cfg.soundSport, soundPause:cfg.soundPause, soundFinish:cfg.soundFinish
+  };
+  goPage('timer');
+  buildDots(); updatePhaseLabel('sport'); updateDots(0); updateNextInfo();
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+  playSound(timerState.soundSport);
+  timerState.interval = setInterval(tick, 1000);
+  renderTimerDisplay();
+}
+
+function tick() {
+  if (timerState.paused) return;
+  timerState.timeLeft--;
+  renderTimerDisplay();
+  if (timerState.timeLeft <= 0) nextPhase();
+}
+
+function nextPhase() {
+  const s = timerState;
+  if (s.phase === 'sport') {
+    if (s.currentSeries >= s.series-1) { finishSession(); return; }
+    s.phase = 'pause'; s.timeLeft = s.pauseTime;
+    playSound(s.soundPause);
+    updatePhaseLabel('pause'); updateNextInfo();
+  } else {
+    s.currentSeries++; s.phase = 'sport'; s.timeLeft = s.sportTime;
+    playSound(s.soundSport);
+    updatePhaseLabel('sport'); updateDots(s.currentSeries); updateNextInfo();
+  }
+  renderTimerDisplay();
+}
+
+function renderTimerDisplay() {
+  const s = timerState, total = s.phase==='sport' ? s.sportTime : s.pauseTime;
+  document.getElementById('ring-digits').textContent = s.timeLeft<10 ? '0'+s.timeLeft : s.timeLeft;
+  document.getElementById('ring-sub').textContent = s.phase==='sport'
+    ? `SÉRIE ${s.currentSeries+1} / ${s.series}`
+    : `PAUSE ${s.currentSeries+1} / ${s.series}`;
+  updateRing(s.timeLeft/total, s.phase);
+}
+
+function togglePause() {
+  timerState.paused = !timerState.paused;
+  document.getElementById('pause-btn').textContent = timerState.paused ? '▶ REPRENDRE' : '⏸ PAUSE';
+}
+function stopSession() {
+  clearInterval(timerState.interval); timerState.running=false; releaseWakeLock(); goPage('config');
+}
+function finishSession() {
+  clearInterval(timerState.interval); timerState.running=false; releaseWakeLock();
+  playSound(timerState.soundFinish);
+  const duration = Math.round((Date.now()-sessionStart)/1000);
+  saveHistory(duration);
+  document.getElementById('finish-stats').innerHTML = `
+    <div class="fstat"><div class="fstat-val">${timerState.series}</div><div class="fstat-lbl">Séries</div></div>
+    <div class="fstat"><div class="fstat-val">${timerState.sportTime}s</div><div class="fstat-lbl">Sport</div></div>
+    <div class="fstat"><div class="fstat-val">${formatDur(duration)}</div><div class="fstat-lbl">Durée totale</div></div>`;
+  document.getElementById('finish-overlay').classList.add('show');
+}
+function newSession() { document.getElementById('finish-overlay').classList.remove('show'); goPage('config'); }
+function closeFinish() { document.getElementById('finish-overlay').classList.remove('show'); goPage('history'); }
+function releaseWakeLock() { if (wakeLock) { wakeLock.release().catch(()=>{}); wakeLock=null; } }
+
+// ══ HISTORY ══
+function saveHistory(duration) {
+  const s = timerState, hist = getHistory();
+  hist.unshift({ date:new Date().toISOString(), series:s.series, sportTime:s.sportTime, pauseTime:s.pauseTime, duration });
+  if (hist.length > 50) hist.pop();
+  try { localStorage.setItem('interval_history', JSON.stringify(hist)); } catch(e) {}
+}
+function getHistory() { try { return JSON.parse(localStorage.getItem('interval_history')||'[]'); } catch(e) { return []; } }
+function formatDur(s) { return s<60 ? s+'s' : Math.floor(s/60)+'min '+(s%60)+'s'; }
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function renderHistory() {
+  const hist = getHistory(), body = document.getElementById('history-body');
+  if (!hist.length) {
+    body.innerHTML = `<div class="history-empty"><div class="big">🏃</div><div style="font-size:16px;font-weight:600;color:var(--text)">Aucune séance enregistrée</div><div style="font-size:14px">Lance ta première séance !</div></div>`;
+    return;
+  }
+  body.innerHTML = `<div class="section-label" style="padding:0 2px">${hist.length} séance${hist.length>1?'s':''} enregistrée${hist.length>1?'s':''}</div>`;
+  hist.forEach(h => {
+    const el = document.createElement('div'); el.className = 'history-item';
+    el.innerHTML = `<div class="history-icon">💪</div><div class="history-info"><div class="history-date">${formatDate(h.date)}</div><div class="history-detail">${h.series} série${h.series>1?'s':''} · ${h.sportTime}s sport / ${h.pauseTime}s pause</div></div><div class="history-badge">${formatDur(h.duration)}</div>`;
+    body.appendChild(el);
+  });
+  const clr = document.createElement('button'); clr.className = 'clear-btn';
+  clr.textContent = "🗑 Effacer l'historique";
+  clr.onclick = () => { if (confirm("Effacer tout l'historique ?")) { localStorage.removeItem('interval_history'); renderHistory(); } };
+  body.appendChild(clr);
+}
+
+// ══ THEME ══
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-btn').textContent = theme === 'light' ? '🌙' : '☀️';
+  try { localStorage.setItem('interval_theme', theme); } catch(e) {}
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+(function initTheme() {
+  const saved = (() => { try { return localStorage.getItem('interval_theme'); } catch(e) { return null; } })();
+  applyTheme(saved || 'dark');
+})();
+
+// ══ INIT ══
+initSoundPickers();
+renderHistory();
+</script>
+</body>
+</html>
