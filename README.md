@@ -7,5 +7,5 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/solfege_app_v1-3.html>
 
-<https://rbtech-cyber.github.io/Rbt_jeux/sport-timer_v1.html>
+<https://rbtech-cyber.github.io/Rbt_jeux/sport-timer_v2.html>
 
