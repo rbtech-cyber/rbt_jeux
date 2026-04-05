@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🦝 Labyrinthe Tournant</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7eed8;
+  --bg2: #eedfc0;
+  --card: #e2ceaa;
+  --wall: #3a2410;
+  --floor: #f0e4c4;
+  --floor2: #e8d8b0;
+  --exit-clr: rgba(30,140,70,0.22);
+  --text: #2a1808;
+  --sub: #9a7040;
+  --btn: #7a4818;
+  --btn2: #5a3010;
+  --btn-txt: #fff5e8;
+  --accent: #e09020;
+  --warn: #c84010;
+  --glow: #ffb030;
+  --enemy-glow: #60c060;
+  --badge-bg: #e2ceaa;
+  --shadow: rgba(50,20,0,0.18);
+  --path-dot: rgba(60,120,60,0.18);
+  --rot-flash: rgba(200,80,20,0.5);
+}
+.dark {
+  --bg: #100c06;
+  --bg2: #180e06;
+  --card: #1c1608;
+  --wall: #c8a048;
+  --floor: #181008;
+  --floor2: #201608;
+  --exit-clr: rgba(30,200,90,0.2);
+  --text: #f4e0b8;
+  --sub: #a08040;
+  --btn: #4a3010;
+  --btn2: #2a1c08;
+  --btn-txt: #f4e0b8;
+  --accent: #d08020;
+  --warn: #e05020;
+  --glow: #ffb030;
+  --enemy-glow: #50b850;
+  --badge-bg: #1c1608;
+  --shadow: rgba(0,0,0,0.5);
+  --path-dot: rgba(50,200,80,0.12);
+  --rot-flash: rgba(255,100,20,0.45);
+}
+
+html, body {
+  height: 100%; overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', system-ui, sans-serif;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background .35s, color .35s;
+}
+
+/* ── TEXTURE OVERLAY ─────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255,200,100,.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(100,50,0,.08) 0%, transparent 50%);
+}
+
+#app {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  height: 100vh;
+  max-width: 480px; margin: 0 auto;
+}
+
+/* ── HEADER ──────────────────────────────────── */
+#hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 6px; gap: 10px; flex-shrink: 0;
+}
+.hdr-info {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.hdr-info .level-line {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 18px; color: var(--text); line-height: 1;
+}
+.hdr-info .level-line span { color: var(--accent); }
+.hdr-info .status {
+  font-size: 11px; color: var(--sub); font-weight: 600;
+  letter-spacing: .3px;
+}
+
+/* Rotation badge */
+#rot-badge {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--badge-bg);
+  border-radius: 12px; padding: 5px 11px;
+  min-width: 74px; gap: 2px;
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: background .2s;
+}
+#rot-icon { font-size: 20px; line-height: 1; transition: transform .3s; }
+#rot-cd {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 14px; color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+#rot-bar-bg {
+  width: 100%; height: 4px;
+  background: rgba(128,100,50,.2);
+  border-radius: 2px; overflow: hidden;
+}
+#rot-bar {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transform-origin: left;
+  transition: transform .09s linear, background .25s;
+}
+
+/* Theme button */
+#theme-btn {
+  background: var(--card); border: none;
+  border-radius: 12px; width: 42px; height: 42px;
+  font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px var(--shadow);
+  transition: background .25s, transform .1s;
+}
+#theme-btn:active { transform: scale(.92); }
+
+/* ── MAZE AREA ───────────────────────────────── */
+#maze-area {
+  flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; padding: 4px; position: relative;
+}
+#flash {
+  position: absolute; inset: 0;
+  background: var(--rot-flash);
+  opacity: 0; pointer-events: none;
+  border-radius: 12px;
+  transition: opacity .15s;
+}
+canvas {
+  display: block;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 30px var(--shadow),
+    0 1px 0 rgba(255,200,100,.15) inset;
+}
+
+/* ── CONTROLS ────────────────────────────────── */
+#pad {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 9px;
+  padding: 6px 16px 6px;
+  max-width: 340px; width: 100%;
+  align-self: center;
+  margin-bottom: 85px;
+}
+.dbtn {
+  background: var(--btn);
+  border: none; border-radius: 16px;
+  color: var(--btn-txt);
+  font-size: 36px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  height: 72px;
+  box-shadow: 0 6px 0 var(--btn2), 0 8px 16px var(--shadow);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .07s, box-shadow .07s;
+  position: relative;
+}
+.dbtn::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(to bottom, rgba(255,255,255,.12), transparent 60%);
+  pointer-events: none;
+}
+.dbtn:active, .dbtn.hit {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--btn2), 0 2px 6px var(--shadow);
+}
+#btn-up    { grid-column: 2; grid-row: 1; }
+#btn-left  { grid-column: 1; grid-row: 2; }
+#btn-down  { grid-column: 2; grid-row: 2; }
+#btn-right { grid-column: 3; grid-row: 2; }
+
+/* ── OVERLAY ─────────────────────────────────── */
+#ov {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(8,4,0,.93);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 30px 24px;
+  backdrop-filter: blur(4px);
+}
+.ov-emoji { font-size: 76px; line-height: 1.1; animation: bounce .6s ease infinite alternate; }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.ov-title {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 28px; color: #f4dfa8;
+  text-align: center; line-height: 1.1;
+}
+.ov-rules {
+  background: rgba(255,210,100,.07);
+  border: 1px solid rgba(255,200,80,.12);
+  border-radius: 14px;
+  padding: 14px 18px;
+  width: 100%; max-width: 300px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ov-rules .rule {
+  font-size: 13px; color: #c8a860; line-height: 1.4;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.ov-rules .rule .ri { flex-shrink: 0; font-size: 16px; }
+#ov-btn {
+  background: linear-gradient(to bottom, #e8a030, #d08020);
+  border: none; border-radius: 16px;
+  color: #fff;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 22px;
+  padding: 14px 48px; cursor: pointer;
+  box-shadow: 0 6px 0 #904010, 0 10px 20px rgba(0,0,0,.4);
+  transition: transform .08s, box-shadow .08s;
+  margin-top: 4px;
+}
+#ov-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #904010, 0 4px 8px rgba(0,0,0,.3); }
+.end-msg {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 22px; color: #f4dfa8; text-align: center;
+}
+.end-sub { font-size: 14px; color: #a08848; text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- Overlay -->
+<div id="ov">
+  <div class="ov-emoji">🦝</div>
+  <div class="ov-title">Labyrinthe<br>Tournant</div>
+  <div class="ov-rules">
+    <div class="rule"><span class="ri">🚪</span><span>Guide le raton jusqu'à la sortie</span></div>
+    <div class="rule"><span class="ri">🔄</span><span>Le labyrinthe tourne — pas les flèches !</span></div>
+    <div class="rule"><span class="ri">🦔</span><span>Le hérisson avance seul vers la sortie</span></div>
+    <div class="rule"><span class="ri">💡</span><span>Les flèches indiquent la direction <em>dans le monde</em>, pas à l'écran !</span></div>
+  </div>
+  <button id="ov-btn">▶ Jouer !</button>
+</div>
+
+<!-- Game -->
+<div id="app">
+  <div id="hdr">
+    <div class="hdr-info">
+      <div class="level-line">Niveau <span id="lv">1</span></div>
+      <div class="status" id="st">Bonne chance !</div>
+    </div>
+    <div id="rot-badge">
+      <div id="rot-icon">🔄</div>
+      <div id="rot-cd">10s</div>
+      <div id="rot-bar-bg"><div id="rot-bar"></div></div>
+    </div>
+    <button id="theme-btn" title="Thème">🌙</button>
+  </div>
+
+  <div id="maze-area">
+    <div id="flash"></div>
+    <canvas id="gc"></canvas>
+  </div>
+
+  <div id="pad">
+    <button class="dbtn" id="btn-up"    data-d="up">⬆</button>
+    <button class="dbtn" id="btn-left"  data-d="left">⬅</button>
+    <button class="dbtn" id="btn-down"  data-d="down">⬇</button>
+    <button class="dbtn" id="btn-right" data-d="right">➡</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+const BASE_CFG = {
+  N: 11,            // maze side (N×N)
+  rotMs: 5000,      // ms between rotations
+  rotAnimMs: 700,   // rotation animation duration ms
+  pMs: 270,         // player step interval ms
+  eMs: 2200,        // enemy step interval ms (niv 1)
+};
+
+// Direction definitions: walls indexed 0=top 1=right 2=bottom 3=left
+const DIRS = [
+  { dr:-1, dc: 0, wi:0, wj:2 },  // up
+  { dr: 0, dc: 1, wi:1, wj:3 },  // right
+  { dr: 1, dc: 0, wi:2, wj:0 },  // down
+  { dr: 0, dc:-1, wi:3, wj:1 },  // left
+];
+const DIR_KEY = {
+  up:    { dr:-1, dc: 0 },
+  down:  { dr: 1, dc: 0 },
+  left:  { dr: 0, dc:-1 },
+  right: { dr: 0, dc: 1 },
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let G = [];        // grid cells
+let P = {};        // player position {r,c}
+let E = {};        // enemy position  {r,c}
+let EPATH = [];    // cached enemy BFS path
+let EXIT = {};     // exit position   {r,c}
+
+let pDir = null;   // player direction {dr,dc} or null
+let playing = false;
+let dark = false;
+let level = 1;
+
+// Rotation
+let visRot = 0, tgtRot = 0, rotFrom = 0, rotT0 = 0, inAnim = false;
+let rotTimer = BASE_CFG.rotMs;
+
+// Timers
+let pTimer = 0, eTimer = 0, lastTs = null;
+
+// ═══════════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════
+const cv = document.getElementById('gc');
+const cx = cv.getContext('2d');
+let cs = 28;  // cell size in px
+
+function sizeCanvas() {
+  const el = document.getElementById('maze-area');
+  const W = el.clientWidth - 8;
+  const H = el.clientHeight - 8;
+  const S = Math.min(W, H);
+  cv.width = cv.height = S;
+  cs = Math.floor(S / getCfg().N);
+}
+
+function getCfg() {
+  return {
+    N:     BASE_CFG.N,
+    rotMs: Math.max(5000, BASE_CFG.rotMs - (level - 1) * 600),
+    rotAnimMs: BASE_CFG.rotAnimMs,
+    pMs:   BASE_CFG.pMs,
+    eMs:   Math.max(900, BASE_CFG.eMs - (level - 1) * 200),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MAZE GENERATION — Recursive Backtracking
+// ═══════════════════════════════════════════════════════════════
+function mkMaze(N) {
+  const grid = Array.from({ length: N }, () =>
+    Array.from({ length: N }, () => ({ w: [1,1,1,1], v: 0 }))
+  );
+  (function carve(r, c) {
+    grid[r][c].v = 1;
+    [...DIRS].sort(() => Math.random() - .5).forEach(({ dr, dc, wi, wj }) => {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < N && nc >= 0 && nc < N && !grid[nr][nc].v) {
+        grid[r][c].w[wi] = 0;
+        grid[nr][nc].w[wj] = 0;
+        carve(nr, nc);
+      }
+    });
+  })(0, 0);
+  return grid;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BFS PATHFINDING
+// ═══════════════════════════════════════════════════════════════
+function bfs(sr, sc, gr, gc) {
+  const N = getCfg().N;
+  const Q = [{ r: sr, c: sc, p: [] }];
+  const vis = new Set([`${sr},${sc}`]);
+  while (Q.length) {
+    const { r, c, p } = Q.shift();
+    if (r === gr && c === gc) return p;
+    for (const { dr, dc, wi } of DIRS) {
+      if (G[r][c].w[wi]) continue;
+      const nr = r + dr, nc = c + dc, k = `${nr},${nc}`;
+      if (nr >= 0 && nr < N && nc >= 0 && nc < N && !vis.has(k)) {
+        vis.add(k);
+        Q.push({ r: nr, c: nc, p: [...p, { r: nr, c: nc }] });
+      }
+    }
+  }
+  return [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function cssv(n) {
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+}
+
+function render() {
+  const S = cv.width;
+  const cfg = getCfg();
+  const mS = cfg.N * cs;
+
+  cx.clearRect(0, 0, S, S);
+
+  // Outer background (matches theme)
+  cx.fillStyle = cssv('--bg');
+  cx.fillRect(0, 0, S, S);
+
+  cx.save();
+  cx.translate(S / 2, S / 2);
+  cx.rotate(visRot * Math.PI / 180);
+  cx.translate(-mS / 2, -mS / 2);
+
+  // ── Floor ──────────────────────────────────────
+  // Checkerboard pattern for visual depth
+  for (let r = 0; r < cfg.N; r++) {
+    for (let c = 0; c < cfg.N; c++) {
+      cx.fillStyle = (r + c) % 2 === 0 ? cssv('--floor') : cssv('--floor2');
+      cx.fillRect(c * cs, r * cs, cs, cs);
+    }
+  }
+
+  // ── Enemy path (subtle trail) ──────────────────
+  if (EPATH.length > 0) {
+    const dotR = cs * 0.08;
+    cx.fillStyle = cssv('--path-dot');
+    EPATH.forEach(({ r, c }) => {
+      cx.beginPath();
+      cx.arc(c * cs + cs * .5, r * cs + cs * .5, dotR, 0, Math.PI * 2);
+      cx.fill();
+    });
+  }
+
+  // ── Exit highlight ─────────────────────────────
+  cx.fillStyle = cssv('--exit-clr');
+  cx.fillRect(EXIT.c * cs, EXIT.r * cs, cs, cs);
+  // Exit pulse ring
+  cx.strokeStyle = dark ? 'rgba(50,200,80,.35)' : 'rgba(30,130,60,.3)';
+  cx.lineWidth = 2;
+  cx.beginPath();
+  cx.roundRect
+    ? cx.roundRect(EXIT.c * cs + 2, EXIT.r * cs + 2, cs - 4, cs - 4, 4)
+    : cx.rect(EXIT.c * cs + 2, EXIT.r * cs + 2, cs - 4, cs - 4);
+  cx.stroke();
+
+  // ── Walls ──────────────────────────────────────
+  cx.strokeStyle = cssv('--wall');
+  cx.lineWidth = Math.max(2.5, cs * 0.12);
+  cx.lineCap = 'square';
+
+  for (let r = 0; r < cfg.N; r++) {
+    for (let c = 0; c < cfg.N; c++) {
+      const x = c * cs, y = r * cs;
+      const w = G[r][c].w;
+      cx.beginPath();
+      if (w[0]) { cx.moveTo(x, y);         cx.lineTo(x + cs, y); }
+      if (w[1]) { cx.moveTo(x + cs, y);    cx.lineTo(x + cs, y + cs); }
+      if (w[2]) { cx.moveTo(x, y + cs);    cx.lineTo(x + cs, y + cs); }
+      if (w[3]) { cx.moveTo(x, y);         cx.lineTo(x, y + cs); }
+      cx.stroke();
+    }
+  }
+
+  // ── Maze border ────────────────────────────────
+  cx.strokeStyle = cssv('--wall');
+  cx.lineWidth = Math.max(3, cs * 0.15);
+  cx.strokeRect(0, 0, mS, mS);
+
+  // Emoji font size — agrandi pour meilleure lisibilité
+  const ef = `${Math.max(14, Math.round(cs * 0.90))}px serif`;
+  const mid = cs * 0.5;
+  cx.textAlign = 'center';
+  cx.textBaseline = 'middle';
+
+  // ── Exit door emoji ────────────────────────────
+  cx.font = ef;
+  cx.shadowColor = dark ? 'rgba(50,200,80,.5)' : 'rgba(30,130,60,.4)';
+  cx.shadowBlur = cs * 0.5;
+  cx.fillText('🚪', EXIT.c * cs + mid, EXIT.r * cs + mid);
+  cx.shadowBlur = 0;
+
+  // ── Enemy (hedgehog) ───────────────────────────
+  cx.font = ef;
+  cx.shadowColor = cssv('--enemy-glow');
+  cx.shadowBlur = cs * 0.5;
+  cx.fillText('🦔', E.c * cs + mid, E.r * cs + mid);
+  cx.shadowBlur = 0;
+
+  // ── Player (raccoon) with glow ─────────────────
+  const pf = `${Math.max(14, Math.round(cs * 1.0))}px serif`;
+  cx.font = pf;
+  cx.shadowColor = cssv('--glow');
+  cx.shadowBlur = cs * 0.7;
+  cx.fillText('🦝', P.c * cs + mid, P.r * cs + mid);
+  cx.shadowBlur = 0;
+
+  // ── Direction arrow on raccoon ─────────────────
+  if (pDir) {
+    const ang = Math.atan2(pDir.dr, pDir.dc);
+    const px = P.c * cs + mid, py = P.r * cs + mid;
+    const ar = cs * 0.52;
+    cx.save();
+    cx.translate(px, py);
+    cx.rotate(ang);
+    cx.fillStyle = 'rgba(255,170,50,0.9)';
+    cx.shadowColor = 'rgba(255,150,20,0.7)';
+    cx.shadowBlur = cs * 0.3;
+    cx.beginPath();
+    cx.moveTo(ar, 0);
+    cx.lineTo(ar - cs * 0.28, -cs * 0.13);
+    cx.lineTo(ar - cs * 0.28,  cs * 0.13);
+    cx.closePath();
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  cx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTATION
+// ═══════════════════════════════════════════════════════════════
+function ease(t) { return t < .5 ? 2*t*t : -1 + (4 - 2*t)*t; }
+
+function triggerRotation() {
+  const cfg = getCfg();
+  const delta = Math.random() < .5 ? 90 : -90;
+  tgtRot = visRot + delta;
+  rotFrom = visRot;
+  rotT0 = performance.now();
+  inAnim = true;
+  rotTimer = cfg.rotMs;
+
+  // Flash
+  const fl = document.getElementById('flash');
+  fl.style.opacity = '1';
+  setTimeout(() => fl.style.opacity = '0', 280);
+
+  // Spin the badge icon
+  document.getElementById('rot-icon').style.transform = 'rotate(360deg)';
+  setTimeout(() => {
+    document.getElementById('rot-icon').style.transform = 'rotate(0deg)';
+    document.getElementById('rot-icon').style.transition = 'none';
+    setTimeout(() => document.getElementById('rot-icon').style.transition = '', 50);
+  }, 500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MOVEMENT
+// ═══════════════════════════════════════════════════════════════
+function canGo(r, c, d) {
+  const cfg = getCfg();
+  const di = DIRS.find(x => x.dr === d.dr && x.dc === d.dc);
+  if (!di || G[r][c].w[di.wi]) return false;
+  const nr = r + d.dr, nc = c + d.dc;
+  return nr >= 0 && nr < cfg.N && nc >= 0 && nc < cfg.N;
+}
+
+function stepPlayer() {
+  if (!pDir) return;
+  if (canGo(P.r, P.c, pDir)) {
+    P.r += pDir.dr; P.c += pDir.dc;
+    if (P.r === EXIT.r && P.c === EXIT.c) { end(true); return; }
+  } else {
+    pDir = null;  // hit wall → stop
+  }
+}
+
+function stepEnemy() {
+  if (E.r === EXIT.r && E.c === EXIT.c) return;
+  EPATH = bfs(E.r, E.c, EXIT.r, EXIT.c);
+  if (EPATH.length > 0) {
+    E.r = EPATH[0].r; E.c = EPATH[0].c;
+    EPATH = EPATH.slice(1);
+  }
+  if (E.r === EXIT.r && E.c === EXIT.c) { end(false); return; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════════════
+function loop(ts) {
+  if (!playing) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(ts - lastTs, 80);
+  lastTs = ts;
+
+  // Rotation animation
+  if (inAnim) {
+    const cfg = getCfg();
+    const t = Math.min((ts - rotT0) / cfg.rotAnimMs, 1);
+    visRot = rotFrom + (tgtRot - rotFrom) * ease(t);
+    if (t >= 1) { visRot = tgtRot; inAnim = false; }
+  }
+
+  // Rotation countdown
+  rotTimer -= dt;
+  updateHUD();
+  if (rotTimer <= 0) triggerRotation();
+
+  // Player movement (auto-advance in current direction)
+  pTimer -= dt;
+  if (pTimer <= 0) { stepPlayer(); pTimer = getCfg().pMs; }
+
+  // Enemy movement
+  eTimer -= dt;
+  if (eTimer <= 0) { stepEnemy(); eTimer = getCfg().eMs; }
+
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HUD UPDATE
+// ═══════════════════════════════════════════════════════════════
+function updateHUD() {
+  const cfg = getCfg();
+  const f = Math.max(0, rotTimer / cfg.rotMs);
+  document.getElementById('rot-cd').textContent = `${Math.ceil(rotTimer / 1000)}s`;
+  document.getElementById('rot-bar').style.transform = `scaleX(${f})`;
+
+  const warn = f < 0.28;
+  const critical = f < 0.12;
+  document.getElementById('rot-badge').style.background =
+    critical ? `rgba(180,50,10,${0.35 + (0.28-f)*3})` :
+    warn ? `rgba(160,60,10,${0.15 + (0.28-f)*1.5})` :
+    'var(--badge-bg)';
+  document.getElementById('rot-bar').style.background =
+    warn ? 'var(--warn)' : 'var(--accent)';
+  document.getElementById('rot-icon').textContent = critical ? '⚠️' : '🔄';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME CONTROL
+// ═══════════════════════════════════════════════════════════════
+function startGame() {
+  document.getElementById('ov').style.display = 'none';
+  const cfg = getCfg();
+  sizeCanvas();
+  G = mkMaze(cfg.N);
+  EXIT = { r: cfg.N - 1, c: cfg.N - 1 };
+  P = { r: 0, c: 0 };
+  E = { r: 0, c: cfg.N - 1 };   // top-right corner
+  EPATH = [];
+  pDir = null;
+  visRot = 0; tgtRot = 0; inAnim = false;
+  rotTimer = cfg.rotMs;
+  pTimer = 0; eTimer = 0; lastTs = null;
+  document.getElementById('lv').textContent = level;
+  document.getElementById('st').textContent = 'Trouve la sortie !';
+  playing = true;
+  requestAnimationFrame(loop);
+}
+
+function end(playerWon) {
+  playing = false;
+  const ov = document.getElementById('ov');
+  ov.innerHTML = `
+    <div class="ov-emoji" style="animation: bounce .5s ease infinite alternate">${playerWon ? '🎉' : '😢'}</div>
+    <div class="ov-title">${playerWon ? 'Bravo !' : 'Dommage...'}</div>
+    <div class="end-msg">${playerWon ? `Niveau ${level} terminé !` : 'Le hérisson est arrivé en premier !'}</div>
+    <div class="end-sub">${playerWon
+      ? 'Tu as maîtrisé le labyrinthe tournant !'
+      : 'Les flèches pointent dans la direction du <em>monde</em>, pas de l\'écran !'}</div>
+    <button id="ov-btn">${playerWon ? '▶ Niveau suivant' : '▶ Rejouer'}</button>`;
+  ov.style.display = 'flex';
+  document.getElementById('ov-btn').addEventListener('click', () => {
+    if (playerWon) level++;
+    startGame();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════════
+function pressDir(name) {
+  if (!playing) return;
+  pDir = DIR_KEY[name];
+  pTimer = 0;  // move immediately on press
+  const b = document.getElementById(`btn-${name}`);
+  if (b) {
+    b.classList.add('hit');
+    setTimeout(() => b.classList.remove('hit'), 160);
+  }
+}
+
+// Touch / pointer buttons
+document.querySelectorAll('.dbtn').forEach(b => {
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    pressDir(b.dataset.d);
+  });
+});
+
+// Keyboard (WASD + arrows)
+document.addEventListener('keydown', e => {
+  const map = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', s: 'down', a: 'left', d: 'right',
+    W: 'up', S: 'down', A: 'left', D: 'right',
+  };
+  const dir = map[e.key];
+  if (dir) { e.preventDefault(); pressDir(dir); }
+});
+
+// Theme toggle
+document.getElementById('theme-btn').addEventListener('click', () => {
+  dark = !dark;
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('theme-btn').textContent = dark ? '☀️' : '🌙';
+  if (!playing) render();
+});
+
+// Start button (initial overlay)
+document.getElementById('ov-btn').addEventListener('click', startGame);
+
+// Resize
+window.addEventListener('resize', () => {
+  if (playing) { sizeCanvas(); }
+});
+
+// Draw a static "preview" (empty game state)
+window.addEventListener('load', () => {
+  sizeCanvas();
+  // Draw a simple intro frame on canvas
+  cx.fillStyle = '#ede0c8';
+  cx.fillRect(0, 0, cv.width, cv.height);
+  const ef = `${Math.max(12, cs * 1.5)}px serif`;
+  cx.font = ef;
+  cx.textAlign = 'center';
+  cx.textBaseline = 'middle';
+  cx.fillText('🦝', cv.width / 2, cv.height / 2);
+});
+</script>
+</body>
+</html>
