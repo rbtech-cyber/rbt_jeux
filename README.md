@@ -21,5 +21,5 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/labyrinthe_v1-3>
 
-https://rbtech-cyber.github.io/Rbt_jeux/jeu_grille_croissante_v1.html
+<https://rbtech-cyber.github.io/Rbt_jeux/jeu_grille_croissante_v1.html>
 
