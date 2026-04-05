@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>PONG ×4</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100dvw; height: 100dvh;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      font-family: 'Press Start 2P', monospace;
+    }
+    #score {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: clamp(32px, 10vw, 64px);
+      opacity: 0.12;
+      letter-spacing: 2px;
+      transition: color 0.3s;
+    }
+    #modeBtn {
+      position: absolute;
+      top: env(safe-area-inset-top, 12px);
+      right: 14px;
+      margin-top: 12px;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      border: 2px solid;
+      cursor: pointer;
+      pointer-events: all;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s;
+      z-index: 20;
+      background: transparent;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      pointer-events: all;
+    }
+    .overlay h1 {
+      font-size: clamp(32px, 12vw, 64px);
+      letter-spacing: 6px;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .overlay .subtitle {
+      font-size: clamp(7px, 2.2vw, 11px);
+      text-align: center;
+      line-height: 2.2;
+      max-width: 270px;
+      opacity: 0.75;
+    }
+    .zone-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      opacity: 0.55;
+    }
+    .zone-tag {
+      font-size: clamp(6px, 1.8vw, 9px);
+      padding: 6px 10px;
+      border: 1px solid;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(11px, 3.5vw, 15px);
+      padding: 16px 36px;
+      border: 3px solid;
+      background: transparent;
+      cursor: pointer;
+      letter-spacing: 3px;
+      transition: all 0.15s;
+      pointer-events: all;
+      margin-top: 8px;
+    }
+    .btn:active { transform: scale(0.93); }
+    .go-label {
+      font-size: clamp(7px, 2vw, 10px);
+      opacity: 0.6;
+      letter-spacing: 2px;
+    }
+    .go-score {
+      font-size: clamp(52px, 18vw, 100px);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+    .go-unit {
+      font-size: clamp(7px, 2vw, 10px);
+      opacity: 0.55;
+      letter-spacing: 3px;
+    }
+    .best-row {
+      font-size: clamp(7px, 2vw, 10px);
+      opacity: 0.5;
+      letter-spacing: 2px;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="score">0</div>
+  <button id="modeBtn">☀️</button>
+
+  <!-- Écran de démarrage -->
+  <div class="overlay" id="startScreen">
+    <h1 id="mainTitle">PONG<br>×4</h1>
+    <p class="subtitle">Gardez la balle dans le terrain.<br>Déplacez les 4 raquettes<br>avec vos doigts.</p>
+    <div class="zone-row">
+      <span class="zone-tag" id="zt">▲ HAUT</span>
+      <span class="zone-tag" id="zb">▼ BAS</span>
+      <span class="zone-tag" id="zl">◀ G.</span>
+      <span class="zone-tag" id="zr">▶ D.</span>
+    </div>
+    <button class="btn" id="startBtn">JOUER</button>
+    <p class="subtitle" style="font-size:clamp(6px,1.8vw,9px);opacity:0.4;margin-top:-8px;">Touchez n'importe où pour commencer</p>
+  </div>
+
+  <!-- Écran Game Over -->
+  <div class="overlay hidden" id="gameoverScreen">
+    <p class="go-label">PARTIE TERMINÉE</p>
+    <div class="go-score" id="finalScore">0</div>
+    <p class="go-unit">REBONDS</p>
+    <p class="best-row" id="bestRow">MEILLEUR : 0</p>
+    <button class="btn" id="restartBtn">REJOUER</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// THÈMES
+// ═══════════════════════════════════════════════════════
+const THEMES = {
+  dark: {
+    bg:          '#070714',
+    gridLine:    'rgba(255,255,255,0.025)',
+    paddle:      '#00f0ff',
+    paddleAlert: '#ff9900',
+    paddleGlow:  'rgba(0,240,255,0.7)',
+    alertGlow:   'rgba(255,153,0,0.8)',
+    ball:        '#ff2d6f',
+    ballGlow:    'rgba(255,45,111,0.9)',
+    trailColor:  '255,45,111',
+    zoneDiv:     'rgba(255,255,255,0.04)',
+    zoneZap:     'rgba(255,45,111,0.06)',
+    scoreTxt:    '#ffffff',
+    ui:          '#00f0ff',
+    uiBorder:    '#00f0ff',
+    btnBorder:   '#00f0ff',
+    btnColor:    '#00f0ff',
+    titleColor:  '#00f0ff',
+    tagBorder:   'rgba(0,240,255,0.4)',
+    tagColor:    'rgba(0,240,255,0.7)',
+    modeBg:      'rgba(0,240,255,0.08)',
+    modeBorder:  '#00f0ff',
+  },
+  light: {
+    bg:          '#f4f2ec',
+    gridLine:    'rgba(0,0,0,0.03)',
+    paddle:      '#1a237e',
+    paddleAlert: '#c62828',
+    paddleGlow:  'rgba(26,35,126,0.35)',
+    alertGlow:   'rgba(198,40,40,0.45)',
+    ball:        '#d32f2f',
+    ballGlow:    'rgba(211,47,47,0.5)',
+    trailColor:  '211,47,47',
+    zoneDiv:     'rgba(0,0,0,0.06)',
+    zoneZap:     'rgba(211,47,47,0.04)',
+    scoreTxt:    '#1a237e',
+    ui:          '#1a237e',
+    uiBorder:    '#1a237e',
+    btnBorder:   '#1a237e',
+    btnColor:    '#1a237e',
+    titleColor:  '#1a237e',
+    tagBorder:   'rgba(26,35,126,0.35)',
+    tagColor:    'rgba(26,35,126,0.6)',
+    modeBg:      'rgba(26,35,126,0.07)',
+    modeBorder:  '#1a237e',
+  }
+};
+
+let isDark = false;
+let T = THEMES.light;
+
+function applyTheme() {
+  T = isDark ? THEMES.dark : THEMES.light;
+  document.body.style.background = T.bg;
+  modeBtn.textContent = isDark ? '☀️' : '🌙';
+  modeBtn.style.background   = T.modeBg;
+  modeBtn.style.borderColor  = T.modeBorder;
+  scoreEl.style.color        = T.scoreTxt;
+  mainTitle.style.color      = T.titleColor;
+  document.querySelectorAll('.btn').forEach(b => {
+    b.style.borderColor = T.btnBorder;
+    b.style.color       = T.btnColor;
+  });
+  document.querySelectorAll('.overlay p, .overlay .go-label, .overlay .go-unit, .overlay .best-row').forEach(el => {
+    el.style.color = T.ui;
+  });
+  document.querySelectorAll('.zone-tag').forEach(el => {
+    el.style.borderColor = T.tagBorder;
+    el.style.color       = T.tagColor;
+  });
+  finalScoreEl.style.color = T.titleColor;
+}
+
+// ═══════════════════════════════════════════════════════
+// CANVAS & GLOBALS
+// ═══════════════════════════════════════════════════════
+const canvas       = document.getElementById('game');
+const ctx          = canvas.getContext('2d');
+const scoreEl      = document.getElementById('score');
+const modeBtn      = document.getElementById('modeBtn');
+const startScreen  = document.getElementById('startScreen');
+const gameoverScreen = document.getElementById('gameoverScreen');
+const startBtn     = document.getElementById('startBtn');
+const restartBtn   = document.getElementById('restartBtn');
+const finalScoreEl = document.getElementById('finalScore');
+const bestRowEl    = document.getElementById('bestRow');
+const mainTitle    = document.getElementById('mainTitle');
+
+let W, H;
+let state   = 'start';
+let rafId   = null;
+let lastTime = 0;
+
+let ball, paddles, score, speed;
+let bounceFlash  = 0;
+let bestScore    = 0;
+let predictSide  = null; // which paddle is in danger
+
+// Constantes (recalculées au resize)
+let BALL_R, PTHICK, PLEN_H, PLEN_V;
+const BASE_SPEED = 4.2;
+const ACCEL      = 0.20;
+const MAX_SPEED  = 18;
+const ALERT_DIST = 160; // px avant la raquette → alerte couleur
+
+// ═══════════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════════
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  const minDim = Math.min(W, H);
+  BALL_R  = Math.max(10, minDim * 0.027);
+  PTHICK  = Math.max(18, minDim * 0.044);
+  PLEN_H  = W * 0.30;
+  PLEN_V  = H * 0.28;
+  if (state !== 'playing') initPaddles();
+}
+
+function initPaddles() {
+  paddles = {
+    top:    { pos: W / 2 },
+    bottom: { pos: W / 2 },
+    left:   { pos: H / 2 },
+    right:  { pos: H / 2 },
+  };
+}
+
+function initBall() {
+  speed = BASE_SPEED;
+  const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.9;
+  ball = {
+    x:  paddles.bottom.pos,
+    y:  H - PTHICK - BALL_R - 3,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    trail: [],
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// TOUCH ZONES (4 triangles depuis le centre)
+// ═══════════════════════════════════════════════════════
+const activeTouches = new Map(); // id → zone
+
+function getZone(x, y) {
+  const dx = (x - W / 2) / W;
+  const dy = (y - H / 2) / H;
+  if (Math.abs(dy) >= Math.abs(dx)) return dy < 0 ? 'top' : 'bottom';
+  return dx < 0 ? 'left' : 'right';
+}
+
+function movePaddle(zone, cx, cy) {
+  if (zone === 'top' || zone === 'bottom') {
+    const half = PLEN_H / 2;
+    paddles[zone].pos = Math.max(half, Math.min(W - half, cx));
+  } else {
+    const half = PLEN_V / 2;
+    paddles[zone].pos = Math.max(half, Math.min(H - half, cy));
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════════════
+window.addEventListener('resize', resize);
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const zone = getZone(t.clientX, t.clientY);
+    activeTouches.set(t.identifier, zone);
+    movePaddle(zone, t.clientX, t.clientY);
+  }
+  if (state === 'start') startGame();
+}
+function handleTouchMove(e) {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const zone = activeTouches.get(t.identifier);
+    if (zone) movePaddle(zone, t.clientX, t.clientY);
+  }
+}
+function handleTouchEnd(e) {
+  e.preventDefault();
+  for (const t of e.changedTouches) activeTouches.delete(t.identifier);
+}
+
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove',  handleTouchMove,  { passive: false });
+canvas.addEventListener('touchend',   handleTouchEnd,   { passive: false });
+canvas.addEventListener('touchcancel',handleTouchEnd,   { passive: false });
+
+// Support souris (desktop / test)
+let mouseDown = false;
+let mouseZone = null;
+canvas.addEventListener('mousedown', (e) => {
+  if (state === 'start') { startGame(); return; }
+  mouseDown = true;
+  mouseZone = getZone(e.clientX, e.clientY);
+  movePaddle(mouseZone, e.clientX, e.clientY);
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (mouseDown && mouseZone) movePaddle(mouseZone, e.clientX, e.clientY);
+});
+canvas.addEventListener('mouseup',   () => { mouseDown = false; mouseZone = null; });
+
+modeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  isDark = !isDark;
+  applyTheme();
+});
+startBtn.addEventListener('click',   startGame);
+restartBtn.addEventListener('click', startGame);
+
+// ═══════════════════════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════════════════════
+function startGame() {
+  score = 0;
+  bounceFlash = 0;
+  predictSide = null;
+  initPaddles();
+  initBall();
+  startScreen.classList.add('hidden');
+  gameoverScreen.classList.add('hidden');
+  scoreEl.style.display  = 'block';
+  scoreEl.textContent    = '0';
+  state = 'playing';
+}
+
+function gameOver() {
+  state = 'gameover';
+  if (score > bestScore) bestScore = score;
+  finalScoreEl.textContent = score;
+  bestRowEl.textContent    = 'MEILLEUR : ' + bestScore;
+  gameoverScreen.classList.remove('hidden');
+  scoreEl.style.display = 'none';
+  activeTouches.clear();
+  mouseDown = false;
+}
+
+// ═══════════════════════════════════════════════════════
+// UPDATE
+// ═══════════════════════════════════════════════════════
+function update(dt) {
+  ball.x += ball.vx * dt;
+  ball.y += ball.vy * dt;
+
+  // Trail
+  ball.trail.push({ x: ball.x, y: ball.y, a: 1 });
+  if (ball.trail.length > 14) ball.trail.shift();
+  for (const p of ball.trail) p.a -= 0.07 * dt;
+
+  // Decay flash
+  bounceFlash = Math.max(0, bounceFlash - 0.06 * dt);
+
+  // Sortie → game over
+  if (ball.x < -BALL_R * 3 || ball.x > W + BALL_R * 3 ||
+      ball.y < -BALL_R * 3 || ball.y > H + BALL_R * 3) {
+    gameOver();
+    return;
+  }
+
+  // Alerte : quel côté est menacé ?
+  predictSide = null;
+  if (ball.vy < 0 && ball.y < ALERT_DIST)     predictSide = 'top';
+  if (ball.vy > 0 && ball.y > H - ALERT_DIST) predictSide = 'bottom';
+  if (ball.vx < 0 && ball.x < ALERT_DIST)     predictSide = 'left';
+  if (ball.vx > 0 && ball.x > W - ALERT_DIST) predictSide = 'right';
+
+  checkCollisions();
+}
+
+function checkCollisions() {
+  let bounced = false;
+
+  // Raquette BAS
+  if (ball.vy > 0 && ball.y + BALL_R >= H - PTHICK) {
+    const half = PLEN_H / 2;
+    if (ball.x >= paddles.bottom.pos - half && ball.x <= paddles.bottom.pos + half) {
+      ball.vy = -Math.abs(ball.vy);
+      ball.y  = H - PTHICK - BALL_R;
+      const off = (ball.x - paddles.bottom.pos) / half;
+      ball.vx += off * speed * 0.35;
+      bounced = true;
+    }
+  }
+  // Raquette HAUT
+  if (ball.vy < 0 && ball.y - BALL_R <= PTHICK) {
+    const half = PLEN_H / 2;
+    if (ball.x >= paddles.top.pos - half && ball.x <= paddles.top.pos + half) {
+      ball.vy = Math.abs(ball.vy);
+      ball.y  = PTHICK + BALL_R;
+      const off = (ball.x - paddles.top.pos) / half;
+      ball.vx += off * speed * 0.35;
+      bounced = true;
+    }
+  }
+  // Raquette GAUCHE
+  if (ball.vx < 0 && ball.x - BALL_R <= PTHICK) {
+    const half = PLEN_V / 2;
+    if (ball.y >= paddles.left.pos - half && ball.y <= paddles.left.pos + half) {
+      ball.vx = Math.abs(ball.vx);
+      ball.x  = PTHICK + BALL_R;
+      const off = (ball.y - paddles.left.pos) / half;
+      ball.vy += off * speed * 0.35;
+      bounced = true;
+    }
+  }
+  // Raquette DROITE
+  if (ball.vx > 0 && ball.x + BALL_R >= W - PTHICK) {
+    const half = PLEN_V / 2;
+    if (ball.y >= paddles.right.pos - half && ball.y <= paddles.right.pos + half) {
+      ball.vx = -Math.abs(ball.vx);
+      ball.x  = W - PTHICK - BALL_R;
+      const off = (ball.y - paddles.right.pos) / half;
+      ball.vy += off * speed * 0.35;
+      bounced = true;
+    }
+  }
+
+  if (bounced) {
+    score++;
+    scoreEl.textContent = score;
+    bounceFlash = 1;
+    predictSide = null;
+
+    speed = Math.min(MAX_SPEED, speed + ACCEL);
+    const mag = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
+    if (mag > 0) {
+      ball.vx = (ball.vx / mag) * speed;
+      ball.vy = (ball.vy / mag) * speed;
+    }
+    // Anti-angles trop plats (min 12° par rapport au bord)
+    const minComp = speed * Math.sin(Math.PI / 15);
+    if (Math.abs(ball.vx) < minComp && Math.abs(ball.vy) > 0) {
+      ball.vx = minComp * Math.sign(ball.vx || 1);
+      const m2 = Math.sqrt(ball.vx**2 + ball.vy**2);
+      ball.vx = (ball.vx/m2)*speed; ball.vy = (ball.vy/m2)*speed;
+    }
+    if (Math.abs(ball.vy) < minComp && Math.abs(ball.vx) > 0) {
+      ball.vy = minComp * Math.sign(ball.vy || 1);
+      const m2 = Math.sqrt(ball.vx**2 + ball.vy**2);
+      ball.vx = (ball.vx/m2)*speed; ball.vy = (ball.vy/m2)*speed;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════════
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = T.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+
+  if (state === 'playing' || state === 'gameover') {
+    drawZoneLines();
+  }
+  if (state === 'start') {
+    drawZoneGuide();
+  }
+
+  // Flash rebond
+  if (bounceFlash > 0) {
+    ctx.fillStyle = isDark
+      ? `rgba(255,255,255,${bounceFlash * 0.045})`
+      : `rgba(0,0,0,${bounceFlash * 0.025})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  drawPaddles();
+
+  if (state === 'playing') {
+    drawTrail();
+    drawBall();
+  }
+
+  // Balle statique sur le démarrage
+  if (state === 'start') {
+    ctx.shadowColor = T.ballGlow;
+    ctx.shadowBlur  = 20;
+    ctx.fillStyle   = T.ball;
+    ctx.beginPath();
+    ctx.arc(W/2, H/2, BALL_R * 1.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawGrid() {
+  ctx.strokeStyle = T.gridLine;
+  ctx.lineWidth   = 1;
+  const step = 44;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = 0; y <= H; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+}
+
+function drawZoneLines() {
+  ctx.save();
+  ctx.strokeStyle = T.zoneDiv;
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([5, 9]);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);    ctx.lineTo(W, H);
+  ctx.moveTo(W, 0);    ctx.lineTo(0, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawZoneGuide() {
+  const cx = W/2, cy = H/2;
+  ctx.save();
+  const c1 = isDark ? 'rgba(0,240,255,0.06)' : 'rgba(26,35,126,0.05)';
+  const c2 = isDark ? 'rgba(0,240,255,0.03)' : 'rgba(26,35,126,0.03)';
+  // Haut
+  ctx.fillStyle = c1;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(W,0); ctx.lineTo(cx,cy); ctx.closePath(); ctx.fill();
+  // Bas
+  ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(W,H); ctx.lineTo(cx,cy); ctx.closePath(); ctx.fill();
+  // Gauche
+  ctx.fillStyle = c2;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,H); ctx.lineTo(cx,cy); ctx.closePath(); ctx.fill();
+  // Droite
+  ctx.beginPath(); ctx.moveTo(W,0); ctx.lineTo(W,H); ctx.lineTo(cx,cy); ctx.closePath(); ctx.fill();
+  // Lignes
+  ctx.strokeStyle = isDark ? 'rgba(0,240,255,0.08)' : 'rgba(26,35,126,0.07)';
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([4, 7]);
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(W,H);
+  ctx.moveTo(W,0); ctx.lineTo(0,H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawPaddles() {
+  const r = PTHICK / 2;
+
+  function drawPaddle(zone, x, y, w, h, radii) {
+    const isAlert = (zone === predictSide);
+    ctx.fillStyle   = isAlert ? T.paddleAlert : T.paddle;
+    ctx.shadowColor = isAlert ? T.alertGlow   : T.paddleGlow;
+    ctx.shadowBlur  = isAlert ? 28 : 16;
+    fillRR(x, y, w, h, radii);
+    ctx.shadowBlur  = 0;
+  }
+
+  // Haut
+  drawPaddle('top',
+    paddles.top.pos - PLEN_H/2, 0,
+    PLEN_H, PTHICK,
+    [0, 0, r, r]
+  );
+  // Bas
+  drawPaddle('bottom',
+    paddles.bottom.pos - PLEN_H/2, H - PTHICK,
+    PLEN_H, PTHICK,
+    [r, r, 0, 0]
+  );
+  // Gauche
+  drawPaddle('left',
+    0, paddles.left.pos - PLEN_V/2,
+    PTHICK, PLEN_V,
+    [0, r, r, 0]
+  );
+  // Droite
+  drawPaddle('right',
+    W - PTHICK, paddles.right.pos - PLEN_V/2,
+    PTHICK, PLEN_V,
+    [r, 0, 0, r]
+  );
+}
+
+function fillRR(x, y, w, h, radii) {
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(x, y, w, h, radii);
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+  ctx.fill();
+}
+
+function drawTrail() {
+  const len = ball.trail.length;
+  for (let i = 0; i < len; i++) {
+    const p   = ball.trail[i];
+    const a   = Math.max(0, p.a) * 0.55;
+    const rad = BALL_R * (i / len) * 0.85;
+    if (rad < 1) continue;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${T.trailColor},${a})`;
+    ctx.fill();
+  }
+}
+
+function drawBall() {
+  // Lueur
+  ctx.shadowColor = T.ballGlow;
+  ctx.shadowBlur  = 24;
+  ctx.fillStyle   = T.ball;
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Reflet
+  const g = ctx.createRadialGradient(
+    ball.x - BALL_R * 0.32, ball.y - BALL_R * 0.32, 1,
+    ball.x, ball.y, BALL_R
+  );
+  g.addColorStop(0, 'rgba(255,255,255,0.45)');
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ═══════════════════════════════════════════════════════
+// BOUCLE PRINCIPALE
+// ═══════════════════════════════════════════════════════
+function loop(timestamp) {
+  const raw = timestamp - lastTime;
+  lastTime  = timestamp;
+  const dt  = Math.min(raw / 16.667, 3.5);
+
+  if (state === 'playing') update(dt);
+  draw();
+
+  rafId = requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+resize();
+applyTheme();
+lastTime = performance.now();
+rafId = requestAnimationFrame(loop);
+</script>
+</body>
+</html>
