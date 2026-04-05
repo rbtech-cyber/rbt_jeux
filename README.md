@@ -15,7 +15,7 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/arcade_retro_v4>
 
-<https://rbtech-cyber.github.io/Rbt_jeux/pongx4>
+<https://rbtech-cyber.github.io/Rbt_jeux/pong4x>
 
 <https://rbtech-cyber.github.io/Rbt_jeux/ChordSheet_v2-5>
 
