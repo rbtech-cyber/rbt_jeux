@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PACMAN vs SNAKE</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#04040f;--fg:#d0d0ff;--accent:#ffe800;--green:#00ff66;
+  --red:#ff3344;--blue:#4477ff;--panel:#080820;--border:#1a2a88;
+  --glow:#ffe80044;--dot:rgba(40,40,100,0.5);
+}
+.lm{
+  --bg:#eeeef8;--fg:#111133;--accent:#c07800;--green:#006633;
+  --red:#cc1122;--blue:#2244cc;--panel:#ddddf2;--border:#8899dd;
+  --glow:#c0780033;--dot:rgba(100,100,200,0.2);
+}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:'Press Start 2P','Courier New',monospace;
+  display:flex;flex-direction:column;align-items:center;
+  min-height:100vh;padding:10px 4px;gap:8px;overflow:hidden;
+  transition:background .3s,color .3s;
+}
+.header{
+  width:100%;max-width:620px;display:flex;
+  justify-content:space-between;align-items:center;padding:2px 8px;
+}
+.title-txt{
+  font-size:14px;color:var(--accent);
+  text-shadow:0 0 12px var(--accent);letter-spacing:3px;
+}
+.theme-btn{
+  background:none;border:2px solid var(--border);color:var(--fg);
+  font-family:inherit;font-size:11px;padding:7px 12px;cursor:pointer;
+  transition:all .2s;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.canvas-wrap{
+  position:relative;
+  border:3px solid var(--border);
+  box-shadow:0 0 28px var(--glow),inset 0 0 50px rgba(0,0,40,.6);
+  line-height:0;transition:box-shadow .3s;
+}
+.canvas-wrap::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 6px);
+  border-radius:0;z-index:5;
+}
+canvas{display:block;image-rendering:pixelated;}
+
+#overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;padding:24px;
+  background:rgba(4,4,15,.93);z-index:10;
+}
+.lm #overlay{background:rgba(238,238,248,.93);}
+.overlay-title{
+  font-size:22px;color:var(--accent);text-align:center;
+  text-shadow:0 0 16px var(--accent);line-height:1.7;
+  animation:blink 1.4s ease-in-out infinite alternate;
+}
+@keyframes blink{from{opacity:.65}to{opacity:1}}
+.overlay-sub{
+  font-size:10px;color:var(--fg);opacity:.8;
+  text-align:center;line-height:2.4;
+}
+.rules-box{
+  font-size:9px;color:var(--fg);opacity:.7;
+  line-height:2.4;text-align:center;
+  border:1px solid var(--border);padding:12px 16px;
+}
+.btn-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.btn{
+  font-family:inherit;font-size:12px;padding:14px 20px;
+  cursor:pointer;border:2px solid;transition:all .15s;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.btn-pac{background:rgba(255,232,0,.1);border-color:var(--accent);color:var(--accent);}
+.btn-pac:hover,.btn-pac.sel{background:var(--accent);color:#000;box-shadow:0 0 20px var(--accent);}
+.btn-snk{background:rgba(0,255,102,.08);border-color:var(--green);color:var(--green);}
+.btn-snk:hover,.btn-snk.sel{background:var(--green);color:#000;box-shadow:0 0 20px var(--green);}
+.btn-n{background:rgba(200,200,255,.04);border-color:var(--border);color:var(--fg);}
+.btn-n:hover{border-color:var(--fg);box-shadow:0 0 10px var(--fg);}
+.score-txt{font-size:10px;text-align:center;line-height:2.4;color:var(--fg);opacity:.75;}
+
+.hud{
+  width:100%;max-width:620px;display:flex;
+  justify-content:space-between;align-items:center;
+  padding:4px 10px;font-size:11px;
+}
+.hud-p{color:var(--accent);}
+.hud-s{color:var(--green);}
+.hud-c{color:var(--fg);opacity:.55;font-size:9px;text-align:center;}
+
+.opts{
+  display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
+  font-size:10px;align-items:center;
+}
+.opt{display:flex;align-items:center;gap:7px;cursor:pointer;}
+.opt input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer;}
+
+.dpad{
+  display:none;grid-template-columns:repeat(3,72px);
+  grid-template-rows:repeat(3,72px);gap:4px;margin-top:8px;
+}
+@media(pointer:coarse){.dpad{display:grid;}}
+.dpad-btn{
+  background:rgba(200,200,255,.07);border:2px solid var(--border);
+  color:var(--fg);font-size:30px;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;border-radius:8px;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+}
+.dpad-btn:active{background:rgba(200,200,255,.25);}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title-txt">😮 PAC vs SNK 🐍</div>
+  <button class="theme-btn" onclick="toggleTheme()">☀ / ☾</button>
+</div>
+
+<div class="canvas-wrap" id="cWrap">
+  <canvas id="cv"></canvas>
+  <div id="overlay"></div>
+</div>
+
+<div class="hud">
+  <div class="hud-p" id="hP">😮 0/3 · M:0</div>
+  <div class="hud-c" id="hC">—</div>
+  <div class="hud-s" id="hS">M:0 · 0/3 🐍</div>
+</div>
+
+<div class="opts">
+  <label class="opt"><input type="checkbox" id="oVib" checked>📳 Vibration</label>
+  <label class="opt"><input type="checkbox" id="oSnd" checked>🔊 Sons</label>
+  <label class="opt"><input type="checkbox" id="oMus" checked onchange="onMusToggle()">🎵 Musique</label>
+</div>
+
+<div class="dpad" id="dpad">
+  <div></div>
+  <div class="dpad-btn" onpointerdown="dpadDir('UP')">▲</div>
+  <div></div>
+  <div class="dpad-btn" onpointerdown="dpadDir('LEFT')">◀</div>
+  <div></div>
+  <div class="dpad-btn" onpointerdown="dpadDir('RIGHT')">▶</div>
+  <div></div>
+  <div class="dpad-btn" onpointerdown="dpadDir('DOWN')">▼</div>
+  <div></div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════
+const COLS=20,ROWS=16,CELL=30,TICK=158,FOOD_N=5;
+const EAT_WIN=3,RND_WIN=2,INIT_LEN=4,ELEC_MS=1000;
+
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const overlay=document.getElementById('overlay');
+cv.width=COLS*CELL; cv.height=ROWS*CELL;
+
+// ═══════════════════════════════════
+//  DIRS
+// ═══════════════════════════════════
+const U={x:0,y:-1,a:-Math.PI/2,n:'U'};
+const D={x:0,y:1,a:Math.PI/2,n:'D'};
+const L={x:-1,y:0,a:Math.PI,n:'L'};
+const R={x:1,y:0,a:0,n:'R'};
+const DIRS=[U,D,L,R];
+function opp(d){return d===U?D:d===D?U:d===L?R:L;}
+function deq(a,b){return a&&b&&a.x===b.x&&a.y===b.y;}
+function peq(a,b){return a.x===b.x&&a.y===b.y;}
+function wrap(p){return{x:((p.x%COLS)+COLS)%COLS,y:((p.y%ROWS)+ROWS)%ROWS};}
+function step(p,d){return wrap({x:p.x+d.x,y:p.y+d.y});}
+function md(a,b){
+  const dx=Math.min(Math.abs(a.x-b.x),COLS-Math.abs(a.x-b.x));
+  const dy=Math.min(Math.abs(a.y-b.y),ROWS-Math.abs(a.y-b.y));
+  return dx+dy;
+}
+
+// ═══════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════
+let AC=null;
+function ac(){
+  if(!AC) AC=new(window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+function tone(f,t,dur,vol=0.25,delay=0){
+  if(!document.getElementById('oSnd').checked) return;
+  try{
+    const a=ac(),now=a.currentTime+delay;
+    const o=a.createOscillator(),g=a.createGain();
+    o.type=t||'square';o.frequency.setValueAtTime(f,now);
+    g.gain.setValueAtTime(vol,now);
+    g.gain.exponentialRampToValueAtTime(0.001,now+dur);
+    o.connect(g);g.connect(a.destination);
+    o.start(now);o.stop(now+dur+0.02);
+  }catch(e){}
+}
+function playWaka(){tone(440,'square',.07,.2);tone(330,'square',.07,.18,.08);}
+function playSnkEat(){tone(180,'sawtooth',.09,.18);tone(230,'sawtooth',.07,.14,.1);}
+function playFood(){tone(660,'square',.05,.15);}
+function playElec(){
+  if(!document.getElementById('oSnd').checked) return;
+  try{
+    const a=ac(),now=a.currentTime;
+    const o=a.createOscillator(),g=a.createGain();
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(60,now);
+    o.frequency.exponentialRampToValueAtTime(800,now+.25);
+    o.frequency.exponentialRampToValueAtTime(100,now+.4);
+    g.gain.setValueAtTime(.35,now);g.gain.exponentialRampToValueAtTime(.001,now+.45);
+    o.connect(g);g.connect(a.destination);o.start(now);o.stop(now+.5);
+  }catch(e){}
+}
+function playScore(){[523,659,784,1047].forEach((f,i)=>tone(f,'square',.1,.28,i*.1));}
+function playRoundW(){[523,659,784,1047,1319].forEach((f,i)=>tone(f,'square',.14,.3,i*.11));}
+function playLose(){[400,350,300,250,200].forEach((f,i)=>tone(f,'sawtooth',.14,.25,i*.1));}
+
+// ─── Music engine ───
+const MELODY=[
+  659,0,659,0,0,0,659,0,0,0,523,0,659,0,0,0,
+  784,0,0,0,0,0,392,0,0,0,0,0,0,0,0,0,
+  523,0,0,0,392,0,0,0,330,0,0,0,440,0,0,0,
+  494,0,0,0,466,0,440,0,0,0,392,0,659,0,784,0,
+  880,0,0,0,698,0,784,0,0,0,659,0,0,0,523,0,
+  587,0,494,0,0,0,523,0,0,0,392,0,330,0,0,0
+];
+const BASS=[
+  130,0,130,0,130,0,0,0,0,0,0,0,0,0,0,0,
+  117,0,117,0,117,0,0,0,98,0,98,0,98,0,0,0,
+  110,0,110,0,87,0,0,0,98,0,98,0,110,0,0,0,
+  117,0,0,0,110,0,104,0,98,0,0,0,87,0,0,0,
+  130,0,0,0,117,0,110,0,104,0,0,0,98,0,0,0,
+  117,0,110,0,104,0,110,0,98,0,0,0,87,0,98,0
+];
+let mIdx=0,musInt=null;
+function startMusic(){
+  if(musInt) return;
+  musInt=setInterval(()=>{
+    if(!document.getElementById('oMus').checked) return;
+    const m=MELODY[mIdx%MELODY.length];
+    const b=BASS[mIdx%BASS.length];
+    if(m>0) tone(m,'square',.11,.1);
+    if(b>0) tone(b,'triangle',.14,.08);
+    mIdx++;
+  },115);
+}
+function stopMusic(){if(musInt){clearInterval(musInt);musInt=null;}}
+function onMusToggle(){document.getElementById('oMus').checked?startMusic():stopMusic();}
+
+// ═══════════════════════════════════
+//  VIBRATION
+// ═══════════════════════════════════
+function vib(p){if(document.getElementById('oVib').checked&&navigator.vibrate)navigator.vibrate(p);}
+
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+let gs='menu'; // menu|select|playing|pause|roundEnd|gameOver
+let playerChar='pacman';
+let pac={},snk={},foods=[];
+let pEats=0,sEats=0,pRnds=0,sRnds=0;
+let tickInt=null,rafId=null;
+let mouthA=0,mouthDr=1;
+let pacSz=1.0;
+let sparks=[];
+let paused=false;
+let flashMap={}; // cell flashes for eating events
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+function initPac(){
+  pac={x:3,y:8,dir:R,next:R,elec:false,eT:0};
+  pacSz=1.0;
+}
+function initSnk(){
+  snk={segs:[],dir:L,next:L,elec:false,eT:0};
+  for(let i=0;i<INIT_LEN;i++) snk.segs.push({x:16+i,y:8});
+}
+function initFoods(){
+  foods=[];
+  for(let i=0;i<FOOD_N;i++) spawnFood();
+}
+function spawnFood(){
+  for(let a=0;a<150;a++){
+    const f={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};
+    if(!peq(f,pac)&&!snk.segs.some(s=>peq(s,f))&&!foods.some(e=>peq(e,f))){
+      foods.push(f);return;
+    }
+  }
+}
+
+// ═══════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════
+function setDir(d){
+  if(gs!=='playing') return;
+  // Pacman peut faire demi-tour, le snake non
+  if(playerChar==='pacman'){ pac.next=d; }
+  else{if(!deq(d,opp(snk.dir))) snk.next=d;}
+}
+function dpadDir(s){setDir(s==='UP'?U:s==='DOWN'?D:s==='LEFT'?L:R);}
+function pauseResume(){
+  if(gs!=='playing'&&gs!=='pause') return;
+  if(!paused){paused=true;gs='pause';stopTick();showOverlay(`<div class="overlay-title" style="font-size:14px">PAUSE</div><button class="btn btn-pac" onclick="resume()">▶ REPRENDRE</button><button class="btn btn-n" onclick="showMenu()">⌂ MENU</button>`);}
+  else resume();
+}
+function resume(){paused=false;gs='playing';overlay.style.display='none';startTick();}
+
+document.addEventListener('keydown',e=>{
+  const map={ArrowUp:U,ArrowDown:D,ArrowLeft:L,ArrowRight:R,w:U,s:D,a:L,d:R,W:U,S:D,A:L,D:R};
+  if(map[e.key]){e.preventDefault();setDir(map[e.key]);}
+  if(e.key==='p'||e.key==='Escape') pauseResume();
+});
+
+let ts0=null;
+document.addEventListener('touchstart',e=>{
+  if(e.target.closest('#dpad')) return;
+  ts0={x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!ts0||gs!=='playing') return;
+  const dx=e.changedTouches[0].clientX-ts0.x,dy=e.changedTouches[0].clientY-ts0.y;
+  if(Math.abs(dx)<10&&Math.abs(dy)<10) return;
+  setDir(Math.abs(dx)>Math.abs(dy)?(dx>0?R:L):(dy>0?D:U));
+  ts0=null;
+},{passive:true});
+
+// ═══════════════════════════════════
+//  AI
+// ═══════════════════════════════════
+function aiPac(){
+  // Pacman AI: target snake tail, eat food opportunistically, avoid snake body
+  const tail=snk.segs[snk.segs.length-1];
+  const body=snk.segs.slice(0,-1);
+  let target=tail;
+  let best=md(pac,tail);
+  foods.forEach(f=>{const d=md(pac,f);if(d<best-3){target=f;best=d;}});
+  let bDir=pac.next,bDist=9999;
+  DIRS.forEach(dir=>{
+    if(deq(dir,opp(pac.dir))) return;
+    const np=step(pac,dir);
+    if(body.some(s=>peq(s,np))) return;
+    const d=md(np,target);
+    if(d<bDist){bDist=d;bDir=dir;}
+  });
+  pac.next=bDir;
+}
+
+function aiSnk(){
+  // Snake AI: try to approach Pacman from behind (same direction), also eat food
+  const head=snk.segs[0];
+  // "Behind" Pacman = position Pacman will vacate = Pacman - Pacman.dir
+  const behind=step({x:pac.x-pac.dir.x,y:pac.y-pac.dir.y},{x:0,y:0});
+  const wb=wrap(behind);
+  let target=wb;
+  let best=md(head,wb);
+  // If food is much closer, get it
+  foods.forEach(f=>{const d=md(head,f);if(d<best-4){target=f;best=d;}});
+  const selfBody=snk.segs.slice(1);
+  let bDir=snk.next,bDist=9999;
+  DIRS.forEach(dir=>{
+    if(deq(dir,opp(snk.dir))) return;
+    const np=step(head,dir);
+    if(selfBody.some(s=>peq(s,np))) return;
+    const d=md(np,target);
+    if(d<bDist){bDist=d;bDir=dir;}
+  });
+  snk.next=bDir;
+}
+
+// ═══════════════════════════════════
+//  TICK
+// ═══════════════════════════════════
+let pacSlowCtr=0; // Ralentissement de Pacman
+
+function tick(){
+  // AI for computer-controlled entity
+  if(playerChar==='pacman') aiSnk();
+  else aiPac();
+
+  // Electrocution timers
+  if(pac.elec){pac.eT-=TICK;if(pac.eT<=0)pac.elec=false;}
+  if(snk.elec){snk.eT-=TICK;if(snk.eT<=0)snk.elec=false;}
+
+  // === 1. SNAKE BOUGE EN PREMIER ===
+  if(!snk.elec){
+    snk.dir=snk.next;
+    const nh=step(snk.segs[0],snk.dir);
+    snk.segs.unshift({...nh});
+    // Nourriture pour snake
+    const fi=foods.findIndex(f=>peq(nh,f));
+    if(fi>=0){foods.splice(fi,1);playFood();vib(25);spawnFood();}
+    else snk.segs.pop();
+
+    // Vérification immédiate : la tête du snake est-elle sur Pacman ?
+    // (avant que Pacman se déplace — c'est ça qui permet au snake de manger Pacman)
+    if(peq(nh,pac)){
+      if(deq(snk.dir,pac.dir)){
+        // Snake attrape Pacman par derrière ✓
+        addFlash({x:nh.x,y:nh.y},'#ff3344');
+        playSnkEat();vib([80,40,80]);
+        scoreSnk();return;
+      } else {
+        // Mauvais angle → snake électrocuté ⚡
+        snk.elec=true;snk.eT=ELEC_MS;
+        playElec();vib([40,20,40,20,40]);
+        addSparks(nh.x*CELL+CELL/2,nh.y*CELL+CELL/2);
+      }
+    }
+  }
+
+  // === 2. PACMAN BOUGE (légèrement plus lent : saute 1 tick sur 5) ===
+  pacSlowCtr++;
+  if(!pac.elec && (pacSlowCtr%5!==0)){
+    pac.dir=pac.next;
+    const np=step(pac,pac.dir);
+    pac.x=np.x;pac.y=np.y;
+
+    // Nourriture pour Pacman
+    const pfi=foods.findIndex(f=>peq({x:pac.x,y:pac.y},f));
+    if(pfi>=0){
+      foods.splice(pfi,1);pacSz=Math.min(pacSz+0.07,1.55);
+      playFood();vib(25);spawnFood();
+    }
+
+    // Pacman vs segments du snake
+    checkPacVsSnake();
+  }
+
+  while(foods.length<FOOD_N) spawnFood();
+  updateHud();
+}
+
+function checkPacVsSnake(){
+  const segs=snk.segs;
+  const last=segs.length-1;
+  for(let i=0;i<segs.length;i++){
+    if(!peq({x:pac.x,y:pac.y},segs[i])) continue;
+    if(i===last&&last>0){
+      // PACMAN mange la QUEUE — seulement si Pacman n'est PAS électrocuté
+      if(pac.elec) return;
+      segs.pop();
+      addFlash(segs[segs.length-1]||segs[0],'#00ff66');
+      playWaka();vib([80,40,80]);
+      scorePac();return;
+    } else if(i===0){
+      // Pacman marche sur la tête
+      if(deq(snk.dir,pac.dir)){
+        scoreSnk();
+      } else {
+        snk.elec=true;snk.eT=ELEC_MS;
+        playElec();vib([40,20,40,20,40]);
+        addSparks(segs[0].x*CELL+CELL/2,segs[0].y*CELL+CELL/2);
+      }
+      return;
+    } else {
+      // Corps → Pacman électrocuté
+      pac.elec=true;pac.eT=ELEC_MS;
+      playElec();vib([40,20,40,20,40]);
+      addSparks(pac.x*CELL+CELL/2,pac.y*CELL+CELL/2);
+      return;
+    }
+  }
+}
+
+function addSparks(cx,cy){
+  for(let i=0;i<10;i++){
+    const a=(i/10)*Math.PI*2;
+    sparks.push({x:cx,y:cy,vx:Math.cos(a)*(2+Math.random()*2),vy:Math.sin(a)*(2+Math.random()*2),life:1});
+  }
+}
+function addFlash(cell,col){flashMap[`${cell.x}_${cell.y}`]={col,t:Date.now()+400};}
+
+function scorePac(){
+  pEats++;updateHud();
+  if(pEats>=EAT_WIN){pRnds++;checkMatch();}
+  else setTimeout(()=>{initPac();initSnk();sparks=[];},400);
+}
+function scoreSnk(){
+  sEats++;updateHud();
+  if(sEats>=EAT_WIN){sRnds++;checkMatch();}
+  else setTimeout(()=>{initPac();initSnk();sparks=[];},400);
+}
+function checkMatch(){
+  stopTick();
+  setTimeout(()=>{
+    if(pRnds>=RND_WIN||sRnds>=RND_WIN) endGame();
+    else endRound();
+  },600);
+}
+
+// ═══════════════════════════════════
+//  SCREENS
+// ═══════════════════════════════════
+function showOverlay(html){overlay.style.display='flex';overlay.innerHTML=html;}
+
+function showMenu(){
+  gs='menu';stopTick();stopMusic();pEats=0;sEats=0;pRnds=0;sRnds=0;
+  showOverlay(`
+    <div class="overlay-title">😮 PACMAN<br>vs<br>🐍 SNAKE</div>
+    <div class="overlay-sub">Le duel pixelisé ultime</div>
+    <button class="btn btn-pac" onclick="showSelect()">▶ JOUER</button>
+    <div class="rules-box">
+      ${EAT_WIN} manges = manche · ${RND_WIN} manches = victoire<br>
+      😮 PACMAN mange la QUEUE du Snake<br>
+      🐍 SNAKE attrape PACMAN par DERRIÈRE<br>
+      ⚡ Mauvaise attaque = électrocution 1s
+    </div>`);
+  updateHud();
+}
+
+function showSelect(){
+  gs='select';
+  showOverlay(`
+    <div class="overlay-title" style="font-size:13px">CHOISIR<br>votre héros</div>
+    <div class="btn-row">
+      <button class="btn btn-pac" onclick="startGame('pacman')">😮<br>PACMAN</button>
+      <button class="btn btn-snk" onclick="startGame('snake')">🐍<br>SNAKE</button>
+    </div>
+    <div class="overlay-sub" style="font-size:6px;line-height:2.4">
+      PACMAN: flèches/WASD · cible la queue<br>
+      SNAKE: flèches/WASD · approche par derrière
+    </div>
+    <button class="btn btn-n" style="font-size:7px" onclick="showMenu()">← RETOUR</button>`);
+}
+
+function startGame(char){
+  playerChar=char;gs='playing';paused=false;
+  pEats=0;sEats=0;
+  initPac();initSnk();initFoods();sparks=[];flashMap={};
+  overlay.style.display='none';
+  startTick();startMusic();
+  updateHud();
+}
+
+function endRound(){
+  gs='roundEnd';
+  playRoundW();
+  const pw=pEats>=EAT_WIN;
+  const nm=pw?'😮 PACMAN':'🐍 SNAKE';
+  const nc=pw?'var(--accent)':'var(--green)';
+  showOverlay(`
+    <div class="overlay-title" style="font-size:11px;color:${nc}">${nm}<br>remporte la manche!</div>
+    <div class="score-txt">Manches: 😮 ${pRnds} — ${sRnds} 🐍<br>Il faut ${RND_WIN} manches</div>
+    <button class="btn btn-pac" onclick="nextRound()">▶ MANCHE SUIVANTE</button>`);
+  updateHud();
+}
+function nextRound(){
+  pEats=0;sEats=0;initPac();initSnk();initFoods();sparks=[];flashMap={};
+  gs='playing';overlay.style.display='none';startTick();updateHud();
+}
+
+function endGame(){
+  gs='gameOver';stopMusic();
+  const pWin=pRnds>=RND_WIN;
+  const isPlayerWin=(playerChar==='pacman'&&pWin)||(playerChar==='snake'&&!pWin);
+  if(isPlayerWin) playRoundW(); else playLose();
+  showOverlay(`
+    <div class="overlay-title" style="font-size:13px">${isPlayerWin?'🏆 VICTOIRE !':'💀 DÉFAITE !'}</div>
+    <div class="overlay-sub">${pWin?'😮 PACMAN':'🐍 SNAKE'} gagne le match !</div>
+    <div class="score-txt">Score final · 😮 ${pRnds} — ${sRnds} 🐍</div>
+    <div class="btn-row">
+      <button class="btn btn-pac" onclick="showSelect()">▶ REJOUER</button>
+      <button class="btn btn-n" onclick="showMenu()">⌂ MENU</button>
+    </div>`);
+}
+
+// ═══════════════════════════════════
+//  TICK MANAGEMENT
+// ═══════════════════════════════════
+function startTick(){stopTick();tickInt=setInterval(tick,TICK);}
+function stopTick(){if(tickInt){clearInterval(tickInt);tickInt=null;}}
+
+// ═══════════════════════════════════
+//  HUD
+// ═══════════════════════════════════
+function updateHud(){
+  document.getElementById('hP').textContent=`😮 ${pEats}/${EAT_WIN} · M:${pRnds}`;
+  document.getElementById('hS').textContent=`M:${sRnds} · ${sEats}/${EAT_WIN} 🐍`;
+  const lbl=gs==='playing'?(playerChar==='pacman'?'TU ES 😮':'TU ES 🐍'):'';
+  document.getElementById('hC').textContent=lbl;
+}
+
+// ═══════════════════════════════════
+//  RENDERING
+// ═══════════════════════════════════
+let lastTs=0;
+function render(ts){
+  rafId=requestAnimationFrame(render);
+  const dt=ts-lastTs;lastTs=ts;
+  const dk=!document.body.classList.contains('lm');
+
+  // Background
+  ctx.fillStyle=dk?'#04040f':'#eeeef8';
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  // Grid dots
+  ctx.fillStyle=dk?'rgba(30,30,80,.5)':'rgba(100,100,200,.18)';
+  for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++)
+    ctx.fillRect(x*CELL+9,y*CELL+9,2,2);
+
+  // Cell flashes
+  const now=Date.now();
+  for(const k in flashMap){
+    const f=flashMap[k];
+    if(now>f.t){delete flashMap[k];continue;}
+    const [gx,gy]=k.split('_').map(Number);
+    ctx.fillStyle=f.col+'55';
+    ctx.fillRect(gx*CELL,gy*CELL,CELL,CELL);
+  }
+
+  // Food
+  foods.forEach(f=>{
+    const px=f.x*CELL+CELL/2,py=f.y*CELL+CELL/2;
+    const pulse=1+.4*Math.sin(ts/350+f.x*1.3+f.y*0.7);
+    // Glow
+    ctx.beginPath();ctx.arc(px,py,7*pulse,0,Math.PI*2);
+    ctx.fillStyle=dk?'rgba(255,210,0,.12)':'rgba(180,130,0,.1)';ctx.fill();
+    // Dot
+    ctx.beginPath();ctx.arc(px,py,3.5*pulse,0,Math.PI*2);
+    ctx.fillStyle=dk?'#ffe040':'#c07800';ctx.fill();
+    // Inner shine
+    ctx.beginPath();ctx.arc(px-1,py-1,1.2,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.6)';ctx.fill();
+  });
+
+  // Snake
+  if(snk.segs&&snk.segs.length){
+    snk.segs.forEach((seg,i)=>{
+      const px=seg.x*CELL,py=seg.y*CELL;
+      const isHead=i===0,isTail=i===snk.segs.length-1;
+      const flashing=snk.elec&&Math.floor(ts/75)%2===0;
+      // Segment color
+      let col;
+      if(flashing) col='#ffffff';
+      else if(isHead) col=dk?'#00ff66':'#006633';
+      else if(isTail) col=dk?'#55ffaa':'#004422';
+      else{
+        const t=i/snk.segs.length;
+        col=dk?`hsl(145,${80-t*20}%,${40+t*15}%)`:`hsl(145,${70-t*20}%,${25+t*10}%)`;
+      }
+      ctx.fillStyle=col;
+      ctx.beginPath();rRect(px+2,py+2,CELL-4,CELL-4,isHead?5:3);ctx.fill();
+
+      // Head details
+      if(isHead&&!flashing){
+        // Eyes
+        const eyes=snkEyePos(snk.dir,px,py);
+        ctx.fillStyle='#000';
+        eyes.forEach(e=>{ctx.beginPath();ctx.arc(e.x,e.y,2,0,Math.PI*2);ctx.fill();});
+        ctx.fillStyle='#fff';
+        eyes.forEach(e=>{ctx.beginPath();ctx.arc(e.x-.5,e.y-.5,.8,0,Math.PI*2);ctx.fill();});
+        // Tongue flicker
+        if(Math.floor(ts/500)%3!==0) drawTongue(px,py,snk.dir,dk);
+      }
+      // Electro ring on head
+      if(snk.elec&&isHead){
+        ctx.strokeStyle=Math.floor(ts/60)%2?'#ffff00':'#ff8800';
+        ctx.lineWidth=2;ctx.beginPath();
+        ctx.arc(px+CELL/2,py+CELL/2,CELL/2+4,0,Math.PI*2);ctx.stroke();
+        drawLightning(ctx,px+CELL/2,py+CELL/2,CELL/2+4,ts);
+      }
+    });
+  }
+
+  // Pacman
+  {
+    const px=pac.x*CELL+CELL/2,py=pac.y*CELL+CELL/2;
+    const r=(CELL/2-1)*pacSz;
+    const flashing=pac.elec&&Math.floor(ts/75)%2===0;
+    // Mouth animation
+    if(!pac.elec){mouthA+=.13*mouthDr;if(mouthA>.28)mouthDr=-1;if(mouthA<0)mouthDr=1;}
+    const mRad=pac.elec?.4:mouthA;
+    const da=pac.dir.a;
+    // Body
+    ctx.fillStyle=flashing?'#ffffff':(dk?'#ffe800':'#c07800');
+    ctx.beginPath();
+    ctx.moveTo(px,py);
+    ctx.arc(px,py,r,da+mRad,da+Math.PI*2-mRad);
+    ctx.closePath();ctx.fill();
+    // Shine
+    if(!flashing){
+      const sg=ctx.createRadialGradient(px-r*.3,py-r*.3,0,px,py,r);
+      sg.addColorStop(0,'rgba(255,255,255,.3)');sg.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=sg;ctx.beginPath();
+      ctx.moveTo(px,py);ctx.arc(px,py,r,da+mRad,da+Math.PI*2-mRad);
+      ctx.closePath();ctx.fill();
+      // Eye
+      const ea=da-Math.PI/2;
+      ctx.fillStyle='#000';ctx.beginPath();
+      ctx.arc(px+Math.cos(ea)*r*.45,py+Math.sin(ea)*r*.45,r*.13,0,Math.PI*2);ctx.fill();
+    }
+    // Electro effect
+    if(pac.elec){
+      ctx.strokeStyle=Math.floor(ts/60)%2?'#ff4400':'#ffff00';
+      ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,r+5,0,Math.PI*2);ctx.stroke();
+      drawLightning(ctx,px,py,r+5,ts);
+    }
+  }
+
+  // Sparks
+  for(let i=sparks.length-1;i>=0;i--){
+    const s=sparks[i];
+    s.x+=s.vx;s.y+=s.vy;s.vx*=.92;s.vy*=.92;s.life-=.055;
+    if(s.life<=0){sparks.splice(i,1);continue;}
+    ctx.fillStyle=`rgba(255,${Math.floor(200*s.life)},0,${s.life})`;
+    ctx.fillRect(s.x-1.5,s.y-1.5,3,3);
+  }
+
+  // Border decoration
+  ctx.strokeStyle=dk?'#1a2a88':'#8899dd';ctx.lineWidth=2;
+  ctx.strokeRect(1,1,cv.width-2,cv.height-2);
+  // Corner accents
+  const C=dk?'#ffe800':'#c07800';ctx.strokeStyle=C;ctx.lineWidth=1;
+  [[1,1],[cv.width-9,1],[1,cv.height-9],[cv.width-9,cv.height-9]].forEach(([cx,cy])=>{
+    ctx.strokeRect(cx,cy,8,8);
+  });
+}
+
+function rRect(x,y,w,h,r){
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+
+function snkEyePos(d,px,py){
+  const c=CELL/2;
+  if(deq(d,R)) return [{x:px+c+3,y:py+c-3},{x:px+c+3,y:py+c+3}];
+  if(deq(d,L)) return [{x:px+c-3,y:py+c-3},{x:px+c-3,y:py+c+3}];
+  if(deq(d,U)) return [{x:px+c-3,y:py+c-3},{x:px+c+3,y:py+c-3}];
+  return [{x:px+c-3,y:py+c+3},{x:px+c+3,y:py+c+3}];
+}
+
+function drawTongue(px,py,d,dk){
+  ctx.strokeStyle='#ff44aa';ctx.lineWidth=1.5;
+  const cx=px+CELL/2,cy=py+CELL/2,len=7;
+  let ex,ey,tx,ty;
+  if(deq(d,R)){ex=cx+CELL/2;ey=cy;tx=ex+len;ty=ey;}
+  else if(deq(d,L)){ex=cx-CELL/2;ey=cy;tx=ex-len;ty=ey;}
+  else if(deq(d,U)){ex=cx;ey=cy-CELL/2;tx=cx;ty=ey-len;}
+  else{ex=cx;ey=cy+CELL/2;tx=cx;ty=ey+len;}
+  ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(tx,ty);ctx.stroke();
+  ctx.beginPath();
+  if(deq(d,R)||deq(d,L)){
+    const sx=deq(d,R)?1:-1;
+    ctx.moveTo(tx,ty);ctx.lineTo(tx+sx*3,ty-3);
+    ctx.moveTo(tx,ty);ctx.lineTo(tx+sx*3,ty+3);
+  } else {
+    const sy=deq(d,D)?1:-1;
+    ctx.moveTo(tx,ty);ctx.lineTo(tx-3,ty+sy*3);
+    ctx.moveTo(tx,ty);ctx.lineTo(tx+3,ty+sy*3);
+  }
+  ctx.stroke();
+}
+
+function drawLightning(c,cx,cy,r,ts){
+  c.strokeStyle='#ffff00';c.lineWidth=1.5;
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2+ts/220;
+    const jit=(ts/30+i*57)%7-3.5;
+    c.beginPath();
+    c.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+    c.lineTo(cx+Math.cos(a+.2)*(r+6)+jit,cy+Math.sin(a+.2)*(r+6)+jit);
+    c.lineTo(cx+Math.cos(a)*(r+11),cy+Math.sin(a)*(r+11));
+    c.stroke();
+  }
+}
+
+// ═══════════════════════════════════
+//  RESPONSIVE SCALING
+// ═══════════════════════════════════
+function scaleCanvas(){
+  const avail=Math.min(window.innerWidth-8,640);
+  const sc=Math.min(avail/(COLS*CELL),1);
+  const wrap=document.getElementById('cWrap');
+  wrap.style.transformOrigin='top center';
+  wrap.style.transform=`scale(${sc})`;
+  wrap.style.marginBottom=`${(cv.height*sc-cv.height)}px`;
+}
+window.addEventListener('resize',scaleCanvas);
+scaleCanvas();
+
+// ═══════════════════════════════════
+//  THEME
+// ═══════════════════════════════════
+function toggleTheme(){document.body.classList.toggle('lm');}
+
+// ═══════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════
+document.addEventListener('click',()=>{if(AC&&AC.state==='suspended')AC.resume();},{once:true});
+rafId=requestAnimationFrame(render);
+showMenu();updateHud();
+</script>
+</body>
+</html>
