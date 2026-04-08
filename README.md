@@ -11,8 +11,6 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/poulets-musiciens-v2-1.html>
 
-https://rbtech-cyber.github.io/Rbt_jeux/pacman_vs_snake_v2.html
-
 <https://rbtech-cyber.github.io/Rbt_jeux/reflexe.html>
 
 <https://rbtech-cyber.github.io/Rbt_jeux/arcade_retro_v4-1>
@@ -25,6 +23,6 @@ https://rbtech-cyber.github.io/Rbt_jeux/pacman_vs_snake_v2.html
 
 <https://rbtech-cyber.github.io/Rbt_jeux/jeu_grille_croissante_v1-2.html>
 
-
+<https://rbtech-cyber.github.io/Rbt_jeux/pacman_vs_snake_v2.html>
 
 
