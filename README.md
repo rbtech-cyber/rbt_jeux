@@ -25,4 +25,6 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/pacman_vs_snake_v2.html>
 
+<https://rbtech-cyber.github.io/Rbt_jeux/laser-chat_v1.html>
+
 
