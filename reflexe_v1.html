@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Réflexe — Attrape l'éclair</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root[data-theme="dark"] {
+    --bg:        #05050f;
+    --bg2:       #0b0b20;
+    --surface:   rgba(255,255,255,0.04);
+    --border:    rgba(255,255,255,0.08);
+    --text:      #e8eaf6;
+    --muted:     #555878;
+    --accent:    #00e5ff;
+    --accent2:   #7c4dff;
+    --danger:    #ff1744;
+    --dot-core:  #ffffff;
+    --dot-glow:  #00e5ff;
+    --dot-ring:  rgba(0,229,255,0.3);
+    --dot-outer: rgba(0,229,255,0.08);
+    --miss-flash:rgba(255,23,68,0.18);
+    --score-glow: 0 0 20px rgba(0,229,255,0.6);
+  }
+  :root[data-theme="light"] {
+    --bg:        #faf8f0;
+    --bg2:       #f0ece0;
+    --surface:   rgba(0,0,0,0.04);
+    --border:    rgba(0,0,0,0.08);
+    --text:      #1a1a2e;
+    --muted:     #9a9080;
+    --accent:    #ff6d00;
+    --accent2:   #d500f9;
+    --danger:    #d50000;
+    --dot-core:  #ffffff;
+    --dot-glow:  #ff6d00;
+    --dot-ring:  rgba(255,109,0,0.35);
+    --dot-outer: rgba(255,109,0,0.1);
+    --miss-flash:rgba(213,0,0,0.12);
+    --score-glow: 0 0 20px rgba(255,109,0,0.5);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 44px 44px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HUD ── */
+  #hud {
+    position: relative; z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 10px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .hud-block {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 1px;
+    min-width: 60px;
+  }
+  .hud-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px; font-weight: 400;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .hud-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px; font-weight: 700;
+    color: var(--accent);
+    text-shadow: var(--score-glow);
+    line-height: 1;
+    transition: text-shadow 0.2s;
+  }
+  #score-val { font-size: 28px; }
+
+  #theme-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  #theme-btn:active { transform: scale(0.88); }
+
+  /* ── TIMER BAR ── */
+  #timer-bar-wrap {
+    position: relative; z-index: 10;
+    height: 4px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  #timer-bar {
+    height: 100%;
+    width: 100%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transform-origin: left center;
+    transition: background 0.3s;
+  }
+
+  /* ── ARENA ── */
+  #arena {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── MISS FLASH ── */
+  #miss-flash {
+    position: absolute; inset: 0;
+    background: var(--miss-flash);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 5;
+  }
+
+  /* ── GLOWING DOT ── */
+  #dot {
+    position: absolute;
+    display: none;
+    pointer-events: none; /* on capture les clics sur l'arena */
+    z-index: 3;
+  }
+  .dot-outer {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--dot-outer);
+    animation: pulse-outer 0.6s ease-in-out infinite alternate;
+  }
+  .dot-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--dot-ring);
+    animation: pulse-ring 0.4s ease-in-out infinite alternate;
+  }
+  .dot-core {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 20%, var(--dot-glow) 70%, transparent 100%);
+    box-shadow:
+      0 0 6px 2px var(--dot-core),
+      0 0 18px 6px var(--dot-glow),
+      0 0 40px 12px var(--dot-ring);
+    animation: shimmer 0.25s ease-in-out infinite alternate,
+               jitter 0.08s linear infinite;
+  }
+  .dot-spark {
+    position: absolute;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--accent);
+    animation: spark-out 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes shimmer {
+    from { transform: scale(1);    opacity: 1; }
+    to   { transform: scale(1.18); opacity: 0.88; }
+  }
+  @keyframes jitter {
+    0%   { transform: scale(1)    translate(0,0); }
+    20%  { transform: scale(1.05) translate(-1px, 1px); }
+    40%  { transform: scale(1)    translate(1px,-1px); }
+    60%  { transform: scale(1.08) translate(-1px,-1px); }
+    80%  { transform: scale(1.02) translate(1px, 1px); }
+    100% { transform: scale(1)    translate(0,0); }
+  }
+  @keyframes pulse-outer {
+    from { transform: scale(1);    opacity: 0.6; }
+    to   { transform: scale(1.25); opacity: 0.2; }
+  }
+  @keyframes pulse-ring {
+    from { transform: scale(0.95); opacity: 0.8; }
+    to   { transform: scale(1.15); opacity: 0.3; }
+  }
+  @keyframes spark-out {
+    0%   { transform: scale(1);   opacity: 0.9; }
+    100% { transform: scale(2.8); opacity: 0; }
+  }
+  @keyframes dot-appear {
+    0%   { opacity: 0; transform: scale(0.2); }
+    60%  { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes dot-hit {
+    0%   { transform: scale(1); opacity: 1; }
+    40%  { transform: scale(2); opacity: 0.7; }
+    100% { transform: scale(3); opacity: 0; }
+  }
+  @keyframes dot-miss {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes miss-flash-anim {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes score-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── OVERLAY (menu / game over) ── */
+  #overlay {
+    position: absolute; inset: 0;
+    z-index: 20;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    background: rgba(5,5,15,0.88);
+    backdrop-filter: blur(8px);
+    padding: 32px 24px;
+  }
+  [data-theme="light"] #overlay { background: rgba(250,248,240,0.88); }
+  #overlay.hidden { display: none; }
+
+  .overlay-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(26px, 7vw, 42px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-align: center;
+    color: var(--accent);
+    text-shadow: var(--score-glow);
+    line-height: 1.15;
+  }
+  .overlay-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(15px, 4vw, 20px);
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 1px;
+    max-width: 320px;
+  }
+
+  .stat-row {
+    display: flex; gap: 32px; align-items: flex-start; justify-content: center;
+  }
+  .stat-block {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .stat-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px; letter-spacing: 2px; color: var(--muted);
+  }
+  .stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px; font-weight: 700;
+    color: var(--text);
+  }
+
+  .btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    padding: 16px 40px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s;
+    z-index: -1;
+  }
+  .btn:active::after { transform: scaleX(1); }
+  .btn:active { color: var(--bg); box-shadow: var(--score-glow); }
+
+  /* floating particles */
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: var(--accent);
+    pointer-events: none;
+    animation: float-up linear forwards;
+    opacity: 0.6;
+  }
+  @keyframes float-up {
+    from { transform: translateY(0) scale(1); opacity: 0.6; }
+    to   { transform: translateY(-80px) scale(0); opacity: 0; }
+  }
+
+  /* combo streak */
+  #streak {
+    position: absolute;
+    z-index: 15;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    text-shadow: 0 0 12px var(--accent2);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-align: center;
+    width: 120px;
+    transform: translateX(-50%);
+  }
+  #streak.show { opacity: 1; }
+
+  /* ── OPTIONS TOGGLES ── */
+  .options-row {
+    display: flex; gap: 16px; align-items: center; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .opt-toggle {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .opt-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px; letter-spacing: 2px; color: var(--muted);
+  }
+  .toggle-pill {
+    position: relative;
+    width: 64px; height: 30px;
+    border-radius: 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: background 0.25s, border-color 0.25s;
+    cursor: pointer;
+  }
+  .toggle-pill::after {
+    content: '';
+    position: absolute;
+    top: 4px; left: 4px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .toggle-pill.on {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: var(--accent);
+  }
+  .toggle-pill.on::after {
+    transform: translateX(34px);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .opt-icon {
+    font-size: 20px;
+    line-height: 1;
+    filter: grayscale(1) opacity(0.5);
+    transition: filter 0.25s;
+  }
+  .opt-toggle.on .opt-icon { filter: grayscale(0) opacity(1); }
+
+  /* floating "+1" */
+  .float-score {
+    position: absolute;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px; font-weight: 900;
+    color: var(--accent);
+    text-shadow: var(--score-glow);
+    pointer-events: none;
+    z-index: 12;
+    animation: float-score 0.9s ease-out forwards;
+  }
+  @keyframes float-score {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-55px) scale(0.7); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-block">
+    <span class="hud-label">Score</span>
+    <span class="hud-value" id="score-val">0</span>
+  </div>
+  <div class="hud-block">
+    <span class="hud-label">Meilleur</span>
+    <span class="hud-value" id="best-val">0</span>
+  </div>
+  <div class="hud-block">
+    <span class="hud-label">Série</span>
+    <span class="hud-value" id="combo-val">0</span>
+  </div>
+  <button id="theme-btn" aria-label="Changer thème">🌙</button>
+</div>
+
+<!-- Timer bar -->
+<div id="timer-bar-wrap">
+  <div id="timer-bar"></div>
+</div>
+
+<!-- Arena de jeu -->
+<div id="arena">
+  <div id="miss-flash"></div>
+
+  <!-- Dot -->
+  <div id="dot">
+    <div class="dot-outer"  style="width:90px;height:90px;top:-45px;left:-45px;"></div>
+    <div class="dot-ring"   style="width:58px;height:58px;top:-29px;left:-29px;"></div>
+    <div class="dot-core"   style="width:28px;height:28px;top:-14px;left:-14px;"></div>
+  </div>
+
+  <!-- Streak label -->
+  <div id="streak"></div>
+
+  <!-- Overlay -->
+  <div id="overlay">
+    <div class="overlay-title">ATTRAPE<br>L'ÉCLAIR</div>
+    <div class="overlay-sub">Touche l'éclair avant qu'il disparaisse. Chaque succès rend le jeu plus rapide.</div>
+    <div class="options-row" id="options-row">
+      <div class="opt-toggle" id="opt-sound" role="switch" aria-checked="true" tabindex="0">
+        <span class="opt-icon">🔊</span>
+        <div class="toggle-pill" id="pill-sound"></div>
+        <span class="opt-label">SON</span>
+      </div>
+      <div class="opt-toggle" id="opt-vibro" role="switch" aria-checked="true" tabindex="0">
+        <span class="opt-icon">📳</span>
+        <div class="toggle-pill" id="pill-vibro"></div>
+        <span class="opt-label">VIBRATION</span>
+      </div>
+    </div>
+    <button class="btn" id="start-btn">JOUER</button>
+  </div>
+</div>
+
+<script>
+const arena      = document.getElementById('arena');
+const dot        = document.getElementById('dot');
+const timerBar   = document.getElementById('timer-bar');
+const overlay    = document.getElementById('overlay');
+const startBtn   = document.getElementById('start-btn');
+const scoreEl    = document.getElementById('score-val');
+const bestEl     = document.getElementById('best-val');
+const comboEl    = document.getElementById('combo-val');
+const missFlash  = document.getElementById('miss-flash');
+const streakEl   = document.getElementById('streak');
+const themeBtn   = document.getElementById('theme-btn');
+
+/* ── STATE ── */
+let score = 0, best = 0, combo = 0;
+let dotActive = false;
+let dotTimer = null, barAnim = null, barRAF = null;
+let dotX = 0, dotY = 0;
+let DOT_RADIUS = 14;          // rayon du dot-core
+let HIT_RADIUS = 42;          // zone de tap (plus large sur mobile)
+
+const BASE_DUR  = 2400;       // ms durée initiale
+const MIN_DUR   = 280;        // ms minimum
+const DECAY     = 0.93;       // facteur multiplicatif par succès
+const MISS_DELAY= 700;        // ms pause après raté
+
+let currentDur  = BASE_DUR;
+let gameRunning = false;
+
+/* ── THEME ── */
+let isDark = true;
+themeBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  themeBtn.textContent = isDark ? '🌙' : '☀️';
+});
+
+/* ── BEST SCORE ── */
+function loadBest() {
+  try { best = parseInt(localStorage.getItem('reflexe_best') || '0'); } catch(e){}
+  bestEl.textContent = best;
+}
+function saveBest() {
+  try { localStorage.setItem('reflexe_best', best); } catch(e){}
+}
+loadBest();
+
+/* ── UI helpers ── */
+function setScore(v) {
+  score = v;
+  scoreEl.textContent = score;
+  scoreEl.style.animation = 'none';
+  void scoreEl.offsetWidth;
+  scoreEl.style.animation = 'score-pop 0.3s ease-out';
+  if (score > best) { best = score; bestEl.textContent = best; saveBest(); }
+}
+function setCombo(v) {
+  combo = v;
+  comboEl.textContent = combo;
+}
+
+/* ── PARTICLES ── */
+function spawnParticles(cx, cy, n = 7) {
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = Math.random() * 360;
+    const dist  = 20 + Math.random() * 35;
+    const px = cx + Math.cos(angle * Math.PI/180) * dist;
+    const py = cy + Math.sin(angle * Math.PI/180) * dist;
+    p.style.left = px + 'px'; p.style.top = py + 'px';
+    p.style.animationDuration = (0.5 + Math.random() * 0.6) + 's';
+    arena.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+}
+
+/* ── FLOATING SCORE ── */
+function floatScore(cx, cy) {
+  const el = document.createElement('div');
+  el.className = 'float-score';
+  el.textContent = '+1';
+  el.style.left = (cx - 16) + 'px';
+  el.style.top  = (cy - 30) + 'px';
+  arena.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+
+/* ── STREAK LABEL ── */
+let streakTimeout;
+function showStreak(cx, cy) {
+  if (combo < 3) { streakEl.classList.remove('show'); return; }
+  const labels = ['','','','🔥 x3','🔥 x4','⚡ x5','⚡ RAPIDE','💥 INCROYABLE','🌟 DINGUE','🌟 LÉGENDAIRE'];
+  const label = combo < labels.length ? labels[combo] : '🔥 x' + combo;
+  streakEl.textContent = label;
+  streakEl.style.left = cx + 'px';
+  streakEl.style.top  = (cy - 50) + 'px';
+  streakEl.classList.add('show');
+  clearTimeout(streakTimeout);
+  streakTimeout = setTimeout(() => streakEl.classList.remove('show'), 900);
+}
+
+/* ── TIMER BAR ── */
+let barStart = 0;
+function startBar(dur) {
+  cancelAnimationFrame(barRAF);
+  timerBar.style.transition = 'none';
+  timerBar.style.transform  = 'scaleX(1)';
+  timerBar.style.background = getComputedStyle(document.documentElement)
+                                  .getPropertyValue('--accent').trim();
+  barStart = performance.now();
+  function step(ts) {
+    const elapsed = ts - barStart;
+    const ratio   = Math.max(0, 1 - elapsed / dur);
+    timerBar.style.transform = `scaleX(${ratio})`;
+    // color: green → yellow → red
+    const h = Math.round(ratio * 120);  // 120=vert, 0=rouge
+    timerBar.style.background = `hsl(${h},100%,55%)`;
+    if (ratio > 0 && dotActive) barRAF = requestAnimationFrame(step);
+  }
+  barRAF = requestAnimationFrame(step);
+}
+function stopBar() {
+  cancelAnimationFrame(barRAF);
+}
+
+/* ── DOT PLACEMENT ── */
+function getRandomPos() {
+  const rect = arena.getBoundingClientRect();
+  const margin = 60;
+  const x = margin + Math.random() * (rect.width  - 2*margin);
+  const y = margin + Math.random() * (rect.height - 2*margin);
+  return { x, y };
+}
+
+/* ── SPAWN DOT ── */
+function spawnDot() {
+  if (!gameRunning) return;
+  const pos = getRandomPos();
+  dotX = pos.x; dotY = pos.y;
+
+  dot.style.left    = dotX + 'px';
+  dot.style.top     = dotY + 'px';
+  dot.style.display = 'block';
+  dot.style.animation = 'none';
+  void dot.offsetWidth;
+  dot.style.animation = 'dot-appear 0.22s ease-out forwards';
+
+  dotActive = true;
+  startBar(currentDur);
+  playSound('spawn');
+
+  // Spark rings à l'apparition
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => addSpark(dotX, dotY), i * 80);
+  }
+
+  dotTimer = setTimeout(() => {
+    if (!dotActive) return;
+    dotMissed();
+  }, currentDur);
+}
+
+function addSpark(cx, cy) {
+  const sp = document.createElement('div');
+  sp.className = 'dot-spark';
+  const sz = 30 + Math.random() * 40;
+  sp.style.cssText = `
+    width:${sz}px; height:${sz}px;
+    left:${cx - sz/2}px; top:${cy - sz/2}px;
+    position:absolute;
+  `;
+  arena.appendChild(sp);
+  sp.addEventListener('animationend', () => sp.remove());
+}
+
+/* ── MISS ── */
+function dotMissed() {
+  dotActive = false;
+  stopBar();
+  timerBar.style.transform = 'scaleX(0)';
+
+  dot.style.animation = 'dot-miss 0.35s ease-out forwards';
+  setTimeout(() => { dot.style.display = 'none'; }, 350);
+
+  // Flash rouge
+  missFlash.style.animation = 'none';
+  void missFlash.offsetWidth;
+  missFlash.style.animation = 'miss-flash-anim 0.4s ease-out forwards';
+
+  setCombo(0);
+  playSound('miss');
+  vibrate([80, 40, 80]);
+  gameOver();
+}
+
+/* ── GAME OVER ── */
+function gameOver() {
+  gameRunning = false;
+  clearTimeout(dotTimer);
+  stopBar();
+  dot.style.display = 'none';
+  streakEl.classList.remove('show');
+
+  // affiche overlay game over
+  overlay.innerHTML = `
+    <div class="overlay-title">RATÉ !</div>
+    <div class="stat-row">
+      <div class="stat-block">
+        <span class="stat-label">Score</span>
+        <span class="stat-val">${score}</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-label">Meilleur</span>
+        <span class="stat-val">${best}</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-label">Réflexe</span>
+        <span class="stat-val">${Math.round(currentDur)}ms</span>
+      </div>
+    </div>
+    <button class="btn" id="start-btn">REJOUER</button>
+  `;
+  overlay.classList.remove('hidden');
+  document.getElementById('start-btn').addEventListener('click', startGame);
+}
+
+/* ── HIT ── */
+function dotHit(tapX, tapY) {
+  if (!dotActive) return;
+  dotActive = false;
+  clearTimeout(dotTimer);
+  stopBar();
+
+  dot.style.animation = 'dot-hit 0.35s ease-out forwards';
+  setTimeout(() => { dot.style.display = 'none'; }, 350);
+
+  setScore(score + 1);
+  setCombo(combo + 1);
+  currentDur = Math.max(MIN_DUR, currentDur * DECAY);
+
+  playSound('hit');
+  vibrate(50);
+  if (combo >= 3) playSound('streak');
+
+  spawnParticles(dotX, dotY, 10);
+  floatScore(dotX, dotY);
+  showStreak(dotX, dotY);
+
+  // spawn suivant
+  setTimeout(spawnDot, 180);
+}
+
+/* ── TAP / CLICK ── */
+function onTap(e) {
+  if (!gameRunning) return;
+  e.preventDefault();
+
+  let cx, cy;
+  if (e.changedTouches) {
+    const t = e.changedTouches[0];
+    const rect = arena.getBoundingClientRect();
+    cx = t.clientX - rect.left;
+    cy = t.clientY - rect.top;
+  } else {
+    const rect = arena.getBoundingClientRect();
+    cx = e.clientX - rect.left;
+    cy = e.clientY - rect.top;
+  }
+
+  if (!dotActive) return;
+
+  const dx = cx - dotX;
+  const dy = cy - dotY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+
+  if (dist <= HIT_RADIUS) {
+    dotHit(cx, cy);
+  }
+  // si on clique à côté on ne fait rien (pas de pénalité pour les clics manqués)
+}
+
+arena.addEventListener('touchstart', onTap, { passive: false });
+arena.addEventListener('mousedown',  onTap);
+
+/* ── OPTIONS : SON & VIBRATION ── */
+let soundOn = true;
+let vibroOn = true;
+
+function loadOptions() {
+  try {
+    soundOn = localStorage.getItem('reflexe_sound') !== 'off';
+    vibroOn = localStorage.getItem('reflexe_vibro') !== 'off';
+  } catch(e) {}
+  applyOption('sound', soundOn);
+  applyOption('vibro', vibroOn);
+}
+
+function applyOption(key, val) {
+  const tog = document.getElementById('opt-' + key);
+  const pill = document.getElementById('pill-' + key);
+  if (!tog || !pill) return;
+  if (val) { tog.classList.add('on'); pill.classList.add('on'); }
+  else      { tog.classList.remove('on'); pill.classList.remove('on'); }
+}
+
+function saveOptions() {
+  try {
+    localStorage.setItem('reflexe_sound', soundOn ? 'on' : 'off');
+    localStorage.setItem('reflexe_vibro', vibroOn ? 'on' : 'off');
+  } catch(e) {}
+}
+
+document.getElementById('opt-sound').addEventListener('click', () => {
+  soundOn = !soundOn;
+  applyOption('sound', soundOn);
+  saveOptions();
+  if (soundOn) playSound('hit'); // feedback auditif immédiat
+});
+document.getElementById('opt-vibro').addEventListener('click', () => {
+  vibroOn = !vibroOn;
+  applyOption('vibro', vibroOn);
+  saveOptions();
+  if (vibroOn) vibrate([30, 30, 30]); // feedback haptique immédiat
+});
+
+loadOptions();
+
+/* ── WEB AUDIO ── */
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone({ freq = 440, type = 'sine', duration = 0.12, volume = 0.35,
+                    freqEnd = null, attack = 0.005, decay = 0.08 } = {}) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (freqEnd !== null)
+      osc.frequency.linearRampToValueAtTime(freqEnd, ctx.currentTime + duration);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + attack);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + attack + decay);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration + 0.05);
+  } catch(e) {}
+}
+
+function playSound(type) {
+  if (!soundOn) return;
+  if (type === 'hit') {
+    playTone({ freq: 880, type: 'sine', duration: 0.12, volume: 0.3, freqEnd: 1100, decay: 0.08 });
+  } else if (type === 'miss') {
+    playTone({ freq: 200, type: 'sawtooth', duration: 0.25, volume: 0.35, freqEnd: 80, decay: 0.22 });
+  } else if (type === 'streak') {
+    // accord ascendant selon le combo
+    const baseFreq = 660 + Math.min(combo, 10) * 55;
+    playTone({ freq: baseFreq,       type: 'sine', duration: 0.10, volume: 0.25, decay: 0.09 });
+    playTone({ freq: baseFreq * 1.25, type: 'sine', duration: 0.14, volume: 0.18, decay: 0.10 });
+  } else if (type === 'spawn') {
+    playTone({ freq: 440, type: 'sine', duration: 0.07, volume: 0.12, freqEnd: 520, decay: 0.05 });
+  }
+}
+
+/* ── VIBRATION ── */
+function vibrate(pattern) {
+  if (!vibroOn) return;
+  try { navigator.vibrate && navigator.vibrate(pattern); } catch(e) {}
+}
+
+/* ── START ── */
+function startGame() {
+  overlay.classList.add('hidden');
+  score = 0; combo = 0;
+  currentDur = BASE_DUR;
+  gameRunning = true;
+  setScore(0); setCombo(0);
+  timerBar.style.transform = 'scaleX(1)';
+  setTimeout(spawnDot, 400);
+}
+
+startBtn.addEventListener('click', startGame);
+</script>
+</body>
+</html>
