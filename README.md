@@ -27,4 +27,4 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/laser-chat_v1.html>
 
-
+<https://rbtech-cyber.github.io/Rbt_jeux/pendu_v1.html>
