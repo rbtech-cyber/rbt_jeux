@@ -11,7 +11,7 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/poulets-musiciens-v2-1.html>
 
-<https://rbtech-cyber.github.io/Rbt_jeux/reflexe.html>
+<https://rbtech-cyber.github.io/Rbt_jeux/reflexe_v1.html>
 
 <https://rbtech-cyber.github.io/Rbt_jeux/arcade_retro_v4-1>
 
