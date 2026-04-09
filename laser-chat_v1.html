@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐱 Laser Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  --bg: #fff0fb;
+  --surface: rgba(255,220,245,0.85);
+  --card: #fff5fc;
+  --text: #3b1f52;
+  --sub: #a06bb5;
+  --accent: #ff5faa;
+  --accent2: #a855f7;
+  --gold: #ffbb00;
+  --red: #ff2222;
+  --shadow: rgba(200,80,180,0.18);
+  --bar-track: rgba(220,160,220,0.35);
+}
+[data-dark] {
+  --bg: #120b20;
+  --surface: rgba(45,15,65,0.9);
+  --card: #1c0f30;
+  --text: #f0d0ff;
+  --sub: #c090dd;
+  --shadow: rgba(160,80,255,0.15);
+  --bar-track: rgba(80,20,110,0.5);
+}
+
+html,body {
+  height:100%; width:100%; overflow:hidden;
+  touch-action:none; user-select:none;
+  background:var(--bg); color:var(--text);
+  font-family:'Nunito',sans-serif;
+  transition:background .35s,color .35s;
+}
+
+/* ── SCREENS ── */
+.screen {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:14px; padding:28px 24px;
+  opacity:0; pointer-events:none;
+  transition:opacity .3s;
+  z-index:10;
+}
+.screen.active { opacity:1; pointer-events:all; }
+
+/* ── START ── */
+.s-title {
+  font-family:'Fredoka One',sans-serif;
+  font-size:2.8rem; line-height:1;
+  background:linear-gradient(135deg,#ff5faa,#a855f7);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  text-align:center; letter-spacing:1px;
+}
+.s-sub {
+  font-size:.95rem; color:var(--sub);
+  text-align:center; max-width:280px; line-height:1.4;
+}
+.cat-hero {
+  font-size:4.5rem;
+  animation:catBob 1.8s ease-in-out infinite;
+  filter:drop-shadow(0 6px 18px rgba(200,80,255,.5));
+  cursor:default;
+}
+@keyframes catBob {
+  0%,100% { transform:translateY(0) rotate(-6deg) scale(1); }
+  50%      { transform:translateY(-14px) rotate(6deg) scale(1.05); }
+}
+.opts {
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+}
+.opt-btn {
+  background:var(--surface);
+  border:2px solid transparent;
+  border-radius:40px; padding:9px 18px;
+  font-size:.88rem; font-family:'Nunito',sans-serif;
+  font-weight:700; color:var(--sub); cursor:pointer;
+  transition:all .2s; backdrop-filter:blur(8px);
+}
+.opt-btn.on {
+  border-color:var(--accent);
+  color:var(--accent);
+  background:linear-gradient(135deg,rgba(255,95,170,.12),rgba(168,85,247,.12));
+}
+.play-btn {
+  background:linear-gradient(135deg,#ff5faa,#a855f7);
+  color:#fff; border:none; border-radius:50px;
+  padding:16px 52px; font-size:1.25rem;
+  font-family:'Fredoka One',sans-serif;
+  letter-spacing:.5px; cursor:pointer;
+  box-shadow:0 10px 28px rgba(255,95,170,.4);
+  transition:transform .15s,box-shadow .15s;
+}
+.play-btn:active { transform:scale(.95); box-shadow:0 5px 14px rgba(255,95,170,.4); }
+.best-row {
+  font-size:.82rem; color:var(--sub);
+  display:flex; align-items:center; gap:6px;
+}
+.best-row strong { color:var(--accent); font-size:1rem; }
+
+/* HOW TO PLAY tooltip */
+.how {
+  font-size:.78rem; color:var(--sub);
+  text-align:center; max-width:280px;
+  line-height:1.6;
+  background:var(--surface);
+  padding:10px 16px; border-radius:16px;
+  backdrop-filter:blur(8px);
+}
+
+/* ── GAME SCREEN ── */
+#gameScreen { background:transparent; gap:0; padding:0; }
+#gameCanvas {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  touch-action:none;
+}
+/* HUD */
+#hud {
+  position:absolute; top:0; left:0; right:0;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 18px 10px;
+  z-index:20; pointer-events:none;
+}
+#scoreDisp {
+  font-family:'Fredoka One',sans-serif;
+  font-size:1.7rem;
+  text-shadow:0 2px 10px rgba(255,95,170,.5);
+}
+#comboDisp {
+  font-size:1rem; font-weight:900;
+  color:var(--gold);
+  text-shadow:0 0 12px rgba(255,200,0,.8);
+  min-width:70px; text-align:center;
+  transition:opacity .2s;
+}
+#levelDisp {
+  font-size:.9rem; font-weight:700;
+}
+/* Energy bar */
+#enWrap {
+  position:absolute; bottom:24px;
+  left:50%; transform:translateX(-50%);
+  width:calc(100% - 40px); max-width:360px;
+  z-index:20; pointer-events:none;
+}
+#enLabel {
+  display:flex; justify-content:space-between;
+  margin-bottom:5px; align-items:center;
+}
+#enText { font-size:.75rem; color:var(--sub); font-weight:700; letter-spacing:.3px; }
+#enCat  { font-size:1.1rem; transition:transform .2s; }
+#enTrack {
+  height:10px; border-radius:10px;
+  background:rgba(255,255,255,.15);
+  overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.3), inset 0 1px 2px rgba(0,0,0,.2);
+}
+#enFill {
+  height:100%; width:100%; border-radius:10px;
+  background:linear-gradient(90deg,#ff5faa,#a855f7);
+  transition:width .12s linear, background .4s;
+  position:relative;
+}
+#enFill::after {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.3) 0%,transparent 100%);
+  border-radius:10px;
+}
+.en-pulse { animation:enPulse .5s ease-in-out infinite; }
+@keyframes enPulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+/* Overlay for fx */
+#overlay {
+  position:fixed; inset:0; z-index:30;
+  pointer-events:none; overflow:hidden;
+}
+
+/* Paw prints */
+.paw {
+  position:absolute; font-size:2rem;
+  pointer-events:none;
+  animation:pawOut 1.4s ease-out forwards;
+  transform-origin:center;
+}
+@keyframes pawOut {
+  0%   { opacity:.95; transform:scale(1.5) rotate(var(--r)); }
+  25%  { opacity:.9;  transform:scale(1)   rotate(var(--r)); }
+  100% { opacity:0;   transform:scale(.6)  rotate(var(--r)); }
+}
+
+/* Score popup */
+.pts {
+  position:absolute; font-family:'Fredoka One',sans-serif;
+  font-size:1.5rem; pointer-events:none;
+  color:#fff; text-shadow:0 0 12px rgba(255,95,170,.9);
+  animation:ptsUp .9s ease-out forwards;
+}
+.pts.big { font-size:2.2rem; color:var(--gold); text-shadow:0 0 16px rgba(255,200,0,.9); }
+@keyframes ptsUp {
+  0%   { opacity:1; transform:translateY(0)    scale(1); }
+  100% { opacity:0; transform:translateY(-70px) scale(.7); }
+}
+
+/* Sparkle */
+.spark {
+  position:absolute; pointer-events:none;
+  font-size:1.3rem;
+  animation:sparkPop .7s ease-out forwards;
+}
+@keyframes sparkPop {
+  0%   { opacity:1; transform:scale(.4) translate(0,0); }
+  100% { opacity:0; transform:scale(1.6) translate(var(--tx),var(--ty)); }
+}
+
+/* Level up */
+.lvlup {
+  position:absolute; left:50%; top:40%;
+  transform:translate(-50%,-50%);
+  font-family:'Fredoka One',sans-serif;
+  font-size:2rem; color:var(--gold);
+  text-shadow:0 0 24px rgba(255,200,0,.9);
+  pointer-events:none; white-space:nowrap;
+  animation:lvlPop 1.2s ease-out forwards;
+}
+@keyframes lvlPop {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(.5); }
+  20%  { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
+  60%  { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  100% { opacity:0; transform:translate(-50%,-80%) scale(.9); }
+}
+
+/* Screen shake */
+@keyframes shake {
+  0%,100%{transform:none}
+  20%{transform:translate(-4px,2px)}
+  40%{transform:translate(4px,-2px)}
+  60%{transform:translate(-2px,4px)}
+  80%{transform:translate(2px,-4px)}
+}
+.shaking { animation:shake .25s ease-in-out; }
+
+/* ── GAME OVER ── */
+#gameOverScreen {
+  background:var(--bg);
+  transition:background .35s;
+}
+.go-emoji { font-size:4rem; }
+.go-title {
+  font-family:'Fredoka One',sans-serif;
+  font-size:2.2rem;
+  background:linear-gradient(135deg,#ff5faa,#a855f7);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.go-score {
+  font-family:'Fredoka One',sans-serif;
+  font-size:3.5rem; line-height:1;
+  color:var(--accent);
+  text-shadow:0 4px 20px rgba(255,95,170,.4);
+}
+.go-label { font-size:.8rem; color:var(--sub); letter-spacing:.5px; text-transform:uppercase; }
+.go-info { font-size:.95rem; color:var(--sub); }
+.new-best {
+  font-family:'Fredoka One',sans-serif;
+  font-size:1.2rem; color:var(--gold);
+  animation:newBest .6s ease-in-out infinite alternate;
+}
+@keyframes newBest { from{transform:scale(1)} to{transform:scale(1.08)} }
+.sec-btn {
+  background:var(--surface);
+  color:var(--sub); font-family:'Nunito',sans-serif;
+  font-weight:700; font-size:1rem;
+  border:2px solid var(--sub); border-radius:40px;
+  padding:12px 32px; cursor:pointer;
+  transition:all .2s; backdrop-filter:blur(8px);
+}
+.sec-btn:active { transform:scale(.95); }
+
+/* Divider */
+.go-divider {
+  width:80px; height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  border-radius:2px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ OVERLAY ══ -->
+<div id="overlay"></div>
+
+<!-- ══ START SCREEN ══ -->
+<div class="screen active" id="startScreen">
+  <div class="s-title">🐱 Laser Chat</div>
+  <div class="s-sub">Tu es le chat… attrape le point rouge avant qu'il t'échappe !</div>
+  <div class="cat-hero" id="catHero">😺</div>
+  <div class="opts">
+    <button class="opt-btn on" id="soundBtn" onclick="toggle('sound')">🔊 Sons</button>
+    <button class="opt-btn on" id="vibrBtn"  onclick="toggle('vibr')">📳 Vibreur</button>
+    <button class="opt-btn"   id="darkBtn"  onclick="toggleDark()">🌙 Mode sombre</button>
+  </div>
+  <button class="play-btn" id="playBtn" onclick="startGame()">😼 JOUER !</button>
+  <div class="how">
+    Tape sur le point rouge ou sa traînée •<br>
+    L'énergie s'épuise si tu rates • Le laser accélère !
+  </div>
+  <div class="best-row">🏆 Meilleur score&nbsp;:&nbsp;<strong id="bestStart">0</strong></div>
+</div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div class="screen" id="gameScreen">
+  <canvas id="gameCanvas"></canvas>
+  <div id="hud">
+    <div id="scoreDisp">0</div>
+    <div id="comboDisp"></div>
+    <div id="levelDisp">Niv.&nbsp;1 🐾</div>
+  </div>
+  <div id="enWrap">
+    <div id="enLabel">
+      <span id="enText">⚡ ÉNERGIE</span>
+      <span id="enCat">😼</span>
+    </div>
+    <div id="enTrack"><div id="enFill"></div></div>
+  </div>
+</div>
+
+<!-- ══ GAME OVER SCREEN ══ -->
+<div class="screen" id="gameOverScreen">
+  <div class="go-emoji" id="goEmoji">😿</div>
+  <div class="go-title">Game Over !</div>
+  <div class="go-divider"></div>
+  <div class="go-label">Ton score</div>
+  <div class="go-score" id="goScore">0</div>
+  <div id="newBestEl" class="new-best" style="display:none">🎉 Nouveau record !</div>
+  <div class="go-info">Niveau atteint : <strong id="goLevel">1</strong></div>
+  <div class="go-info">Meilleur : <strong id="goBest">0</strong></div>
+  <button class="play-btn" onclick="startGame()">😼 Rejouer</button>
+  <button class="sec-btn"  onclick="showStart()">↩ Menu</button>
+</div>
+
+<script>
+// ════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════
+const cfg = { sound:true, vibr:true, dark:false };
+let bestScore = +localStorage.getItem('lcBest')||0;
+
+document.getElementById('bestStart').textContent = bestScore;
+
+function toggle(k){
+  cfg[k]=!cfg[k];
+  const el=document.getElementById(k==='sound'?'soundBtn':'vibrBtn');
+  el.classList.toggle('on',cfg[k]);
+  el.textContent=k==='sound'?(cfg[k]?'🔊 Sons':'🔇 Sons'):(cfg[k]?'📳 Vibreur':'📵 Vibreur');
+}
+function toggleDark(){
+  cfg.dark=!cfg.dark;
+  document.documentElement.toggleAttribute('data-dark',cfg.dark);
+  const b=document.getElementById('darkBtn');
+  b.textContent=cfg.dark?'☀️ Mode clair':'🌙 Mode sombre';
+  b.classList.toggle('on',cfg.dark);
+}
+
+// ════════════════════════════════
+//  AUDIO
+// ════════════════════════════════
+let AC=null;
+const ac=()=>{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();return AC;};
+
+function bip(freq,dur,type='sine',vol=.28,fEnd=null){
+  if(!cfg.sound)return;
+  const c=ac(),o=c.createOscillator(),g=c.createGain();
+  o.connect(g);g.connect(c.destination);
+  o.type=type;o.frequency.value=freq;
+  if(fEnd)o.frequency.exponentialRampToValueAtTime(fEnd,c.currentTime+dur);
+  g.gain.setValueAtTime(vol,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);
+  o.start();o.stop(c.currentTime+dur);
+}
+function sndHit()  { bip(900,.15,'sine',.3,1400); }
+function sndTrail(){ bip(600,.12,'sine',.2,900); }
+function sndLvl()  { [523,659,784].forEach((f,i)=>setTimeout(()=>bip(f,.18,'sine',.22),i*100)); }
+function sndOver() { bip(440,.9,'sawtooth',.3,100); }
+function sndPop()  {
+  if(!cfg.sound)return;
+  const c=ac(),buf=c.createBuffer(1,c.sampleRate*.12,c.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+  s.buffer=buf;f.type='bandpass';
+  f.frequency.setValueAtTime(2500,c.currentTime);
+  f.frequency.exponentialRampToValueAtTime(300,c.currentTime+.12);
+  g.gain.setValueAtTime(.25,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.12);
+  s.connect(f);f.connect(g);g.connect(c.destination);
+  s.start();
+}
+function vibe(p){ if(cfg.vibr&&navigator.vibrate)navigator.vibrate(p); }
+
+// ════════════════════════════════
+//  CANVAS
+// ════════════════════════════════
+const CV=document.getElementById('gameCanvas');
+const cx=CV.getContext('2d');
+
+function resize(){
+  CV.width=window.innerWidth;
+  CV.height=window.innerHeight;
+}
+window.addEventListener('resize',resize);
+resize();
+
+// ════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════
+let alive=false, raf=null;
+let score,energy,level,speed,combo,comboT,lastLvl,teleCD,frame;
+
+const DOT={x:0,y:0,vx:4,vy:3,r:13,a:1,tele:false,teleT:0};
+const TRAIL=[];
+const TRAIL_MAX=40;
+
+// ════════════════════════════════
+//  SCREENS
+// ════════════════════════════════
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showStart(){
+  alive=false; if(raf)cancelAnimationFrame(raf);
+  TRAIL.length=0;
+  document.getElementById('overlay').innerHTML='';
+  document.getElementById('bestStart').textContent=bestScore;
+  show('startScreen');
+}
+
+// ════════════════════════════════
+//  START GAME
+// ════════════════════════════════
+function startGame(){
+  score=0; energy=100; level=1; speed=1;
+  combo=0; comboT=0; lastLvl=1; teleCD=0; frame=0;
+  TRAIL.length=0;
+  resize();
+  DOT.x=CV.width/2; DOT.y=CV.height/2;
+  const a=Math.random()*Math.PI*2, m=3;
+  DOT.vx=Math.cos(a)*m; DOT.vy=Math.sin(a)*m;
+  DOT.a=1; DOT.tele=false;
+  document.getElementById('overlay').innerHTML='';
+  updateHUD(); show('gameScreen');
+  alive=true;
+  if(raf)cancelAnimationFrame(raf);
+  loop();
+}
+
+// ════════════════════════════════
+//  GAME LOOP
+// ════════════════════════════════
+function loop(){
+  if(!alive)return;
+  update(); draw();
+  raf=requestAnimationFrame(loop);
+}
+
+function update(){
+  frame++;
+  // Level & speed — progression plus douce (palier tous les 25 pts)
+  const newLvl=Math.floor(score/25)+1;
+  if(newLvl>level){
+    level=newLvl; speed=Math.min(1+(level-1)*.18,4.2);
+    if(level>lastLvl){lastLvl=level;sndLvl();vibe([40,20,40]);spawnLvlUp();}
+  }
+  // Drain plus lent, montée progressive par niveau
+  const drain=.05+(level-1)*.016;
+  energy=Math.max(0,energy-drain);
+  if(energy<=0){endGame();return;}
+  updateBar();
+  // Combo timer
+  if(comboT>0){comboT--;if(!comboT)combo=0;}
+  // Teleport countdown
+  if(teleCD>0)teleCD--;
+
+  if(!DOT.tele){
+    DOT.x+=DOT.vx*speed; DOT.y+=DOT.vy*speed;
+    // Bounce
+    const p=DOT.r, W=CV.width, H=CV.height;
+    if(DOT.x<p){DOT.x=p;DOT.vx=Math.abs(DOT.vx);}
+    if(DOT.x>W-p){DOT.x=W-p;DOT.vx=-Math.abs(DOT.vx);}
+    if(DOT.y<p+60){DOT.y=p+60;DOT.vy=Math.abs(DOT.vy);}
+    if(DOT.y>H-p-60){DOT.y=H-p-60;DOT.vy=-Math.abs(DOT.vy);}
+    // Wiggle – moins erratique en début de partie
+    if(Math.random()<.012+speed*.003){
+      const ang=Math.atan2(DOT.vy,DOT.vx)+(Math.random()-.5)*Math.PI*.55;
+      const m=2.5+speed*.8;
+      DOT.vx=Math.cos(ang)*m; DOT.vy=Math.sin(ang)*m;
+    }
+    // Random teleport – démarre à partir du niv 3
+    const tc=level>=3?(.002+(level-3)*.0014):0;
+    if(teleCD===0&&Math.random()<tc) doTele();
+    // Trail
+    TRAIL.push({x:DOT.x,y:DOT.y,age:0});
+    if(TRAIL.length>TRAIL_MAX)TRAIL.shift();
+    TRAIL.forEach(p=>p.age++);
+  } else {
+    // Teleporting out
+    DOT.teleT--;
+    if(DOT.teleT<15) DOT.a=Math.max(0,DOT.teleT/15);
+    if(DOT.teleT<=0){
+      const m=80, W=CV.width, H=CV.height;
+      DOT.x=m+Math.random()*(W-m*2);
+      DOT.y=m+60+Math.random()*(H-m*2-120);
+      const ang=Math.random()*Math.PI*2, sp=3+speed;
+      DOT.vx=Math.cos(ang)*sp; DOT.vy=Math.sin(ang)*sp;
+      DOT.tele=false; DOT.a=1;
+      TRAIL.length=0; teleCD=120; sndPop();
+    }
+  }
+}
+
+function doTele(){
+  DOT.tele=true; DOT.teleT=28; sndPop();
+  TRAIL.length=0;
+}
+
+function updateHUD(){
+  document.getElementById('scoreDisp').textContent=score;
+  document.getElementById('levelDisp').textContent=`Niv.\u00a0${level} 🐾`;
+  const cd=document.getElementById('comboDisp');
+  cd.textContent=combo>=2?`x${combo} 🔥`:'';
+  cd.style.opacity=combo>=2?'1':'0';
+  // Adapt HUD text color to theme
+  const dark=cfg.dark;
+  document.getElementById('scoreDisp').style.color=dark?'#fff':'#c03080';
+  document.getElementById('levelDisp').style.color=dark?'rgba(255,255,255,.8)':'rgba(100,40,140,.85)';
+}
+
+function updateBar(){
+  const fill=document.getElementById('enFill');
+  fill.style.width=energy+'%';
+  const cat=document.getElementById('enCat');
+  if(energy<20){
+    fill.style.background='linear-gradient(90deg,#ff2222,#ff7700)';
+    fill.classList.add('en-pulse');
+    cat.textContent='😱';
+    // Screen shake at very low energy
+    if(frame%40===0) document.getElementById('gameScreen').classList.add('shaking');
+    setTimeout(()=>document.getElementById('gameScreen').classList.remove('shaking'),300);
+  } else if(energy<50){
+    fill.style.background='linear-gradient(90deg,#ff9900,#ffcc00)';
+    fill.classList.remove('en-pulse');
+    cat.textContent='😾';
+  } else {
+    fill.style.background='linear-gradient(90deg,#ff5faa,#a855f7)';
+    fill.classList.remove('en-pulse');
+    cat.textContent='😼';
+  }
+}
+
+// ════════════════════════════════
+//  DRAW
+// ════════════════════════════════
+function draw(){
+  const W=CV.width, H=CV.height;
+  // Game bg – dark in dark mode, soft pastel in light mode
+  if(cfg.dark){
+    cx.fillStyle='rgba(8,3,18,.97)';
+    cx.fillRect(0,0,W,H);
+  } else {
+    const bgGrd=cx.createLinearGradient(0,0,W,H);
+    bgGrd.addColorStop(0,'rgba(255,242,252,.97)');
+    bgGrd.addColorStop(1,'rgba(238,224,255,.97)');
+    cx.fillStyle=bgGrd;
+    cx.fillRect(0,0,W,H);
+    // Subtle dot grid texture
+    cx.fillStyle='rgba(200,160,230,.06)';
+    for(let gx=0;gx<W;gx+=28)for(let gy=0;gy<H;gy+=28){
+      cx.beginPath();cx.arc(gx,gy,1.2,0,Math.PI*2);cx.fill();
+    }
+  }
+
+  if(DOT.tele&&DOT.a<=0) return;
+
+  // Trail
+  const trailBoost=cfg.dark?1:1.4; // more visible on light bg
+  for(let i=0;i<TRAIL.length;i++){
+    const p=TRAIL[i];
+    const prog=(i+1)/TRAIL.length;
+    const alpha=prog*prog*.75*DOT.a*trailBoost;
+    const r=DOT.r*(0.15+prog*.65);
+    // Glow
+    cx.save();
+    cx.globalAlpha=alpha*.45;
+    const g1=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*3);
+    g1.addColorStop(0,'#ff4444');
+    g1.addColorStop(1,'transparent');
+    cx.fillStyle=g1;
+    cx.beginPath();cx.arc(p.x,p.y,r*3,0,Math.PI*2);cx.fill();
+    cx.restore();
+    // Core
+    cx.save();
+    cx.globalAlpha=alpha;
+    const g2=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
+    g2.addColorStop(0,`rgba(255,${Math.floor(70*prog)},${Math.floor(40*prog)},1)`);
+    g2.addColorStop(1,`rgba(200,0,0,${prog*.6})`);
+    cx.fillStyle=g2;
+    cx.beginPath();cx.arc(p.x,p.y,r,0,Math.PI*2);cx.fill();
+    cx.restore();
+  }
+
+  // Laser dot
+  cx.save();
+  cx.globalAlpha=DOT.a;
+  // Big bloom
+  const bloom=cx.createRadialGradient(DOT.x,DOT.y,0,DOT.x,DOT.y,DOT.r*4.5);
+  bloom.addColorStop(0,'rgba(255,120,120,.7)');
+  bloom.addColorStop(.4,'rgba(255,20,20,.25)');
+  bloom.addColorStop(1,'transparent');
+  cx.fillStyle=bloom;
+  cx.beginPath();cx.arc(DOT.x,DOT.y,DOT.r*4.5,0,Math.PI*2);cx.fill();
+  // Mid glow
+  const mid=cx.createRadialGradient(DOT.x,DOT.y,0,DOT.x,DOT.y,DOT.r*2);
+  mid.addColorStop(0,'rgba(255,180,180,1)');
+  mid.addColorStop(1,'rgba(220,10,10,.8)');
+  cx.fillStyle=mid;
+  cx.beginPath();cx.arc(DOT.x,DOT.y,DOT.r*2,0,Math.PI*2);cx.fill();
+  // Core
+  const core=cx.createRadialGradient(DOT.x-3,DOT.y-3,0,DOT.x,DOT.y,DOT.r);
+  core.addColorStop(0,'#fff');
+  core.addColorStop(.3,'#ffaaaa');
+  core.addColorStop(1,'#dd0000');
+  cx.fillStyle=core;
+  cx.beginPath();cx.arc(DOT.x,DOT.y,DOT.r,0,Math.PI*2);cx.fill();
+  // Specular
+  cx.fillStyle='rgba(255,255,255,.85)';
+  cx.beginPath();cx.arc(DOT.x-3,DOT.y-3,DOT.r*.28,0,Math.PI*2);cx.fill();
+  cx.restore();
+}
+
+// ════════════════════════════════
+//  INPUT
+// ════════════════════════════════
+function hit(ex,ey){
+  if(!alive) return;
+  spawnPaw(ex,ey);
+  const dx=ex-DOT.x, dy=ey-DOT.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+
+  if(!DOT.tele && dist<DOT.r+30){
+    // Direct hit!
+    combo++; comboT=110;
+    const mult=combo>=3?combo-1:1;
+    const pts=10*mult;
+    score+=pts; energy=Math.min(100,energy+25);
+    sndHit(); vibe(25);
+    spawnFx(ex,ey,pts,false);
+    updateHUD(); return;
+  }
+  // Trail hit (recent 25 points)
+  const recent=TRAIL.slice(-25);
+  for(const p of recent){
+    const tx=ex-p.x, ty=ey-p.y;
+    if(Math.sqrt(tx*tx+ty*ty)<28){
+      combo++; comboT=110;
+      const mult=combo>=3?Math.ceil((combo-1)/2):1;
+      const pts=5*mult;
+      score+=pts; energy=Math.min(100,energy+12);
+      sndTrail(); vibe(12);
+      spawnFx(ex,ey,pts,true);
+      updateHUD(); return;
+    }
+  }
+  // Miss → break combo
+  combo=0; comboT=0; updateHUD();
+}
+
+CV.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  Array.from(e.changedTouches).forEach(t=>{
+    const r=CV.getBoundingClientRect();
+    hit(t.clientX-r.left,t.clientY-r.top);
+  });
+},{passive:false});
+
+CV.addEventListener('click',e=>{
+  const r=CV.getBoundingClientRect();
+  hit(e.clientX-r.left,e.clientY-r.top);
+});
+
+// ════════════════════════════════
+//  FX HELPERS
+// ════════════════════════════════
+const OV=document.getElementById('overlay');
+
+function spawnPaw(x,y){
+  const el=document.createElement('div');
+  el.className='paw';
+  const rot=(Math.random()*70-35).toFixed(0);
+  el.style.cssText=`left:${x-18}px;top:${y-18}px;--r:${rot}deg`;
+  el.textContent='🐾';
+  OV.appendChild(el);
+  setTimeout(()=>el.remove(),1500);
+}
+
+function spawnFx(x,y,pts,trail){
+  // Score popup
+  const pop=document.createElement('div');
+  pop.className='pts'+(pts>=20?' big':'');
+  pop.style.cssText=`left:${x}px;top:${y-20}px;transform:translateX(-50%)`;
+  pop.textContent=`+${pts}${pts>=20?' 🔥':''}`;
+  OV.appendChild(pop);
+  setTimeout(()=>pop.remove(),1000);
+  // Sparks
+  if(!trail){
+    const emojis=['✨','⭐','💫','🌟','❇️'];
+    for(let i=0;i<3;i++){
+      const s=document.createElement('div');
+      s.className='spark';
+      const tx=(Math.random()*60-30).toFixed(0);
+      const ty=(Math.random()*-50-10).toFixed(0);
+      s.style.cssText=`left:${x+10}px;top:${y-10}px;--tx:${tx}px;--ty:${ty}px;animation-delay:${i*60}ms`;
+      s.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+      OV.appendChild(s);
+      setTimeout(()=>s.remove(),800);
+    }
+  }
+}
+
+function spawnLvlUp(){
+  const el=document.createElement('div');
+  el.className='lvlup';
+  el.textContent=`⚡ Niveau ${level} ! ⚡`;
+  OV.appendChild(el);
+  setTimeout(()=>el.remove(),1300);
+}
+
+// ════════════════════════════════
+//  GAME OVER
+// ════════════════════════════════
+function endGame(){
+  alive=false;
+  sndOver(); vibe([80,40,80,40,180]);
+  const isNew=score>bestScore;
+  if(isNew){bestScore=score;localStorage.setItem('lcBest',bestScore);}
+  document.getElementById('goScore').textContent=score;
+  document.getElementById('goLevel').textContent=level;
+  document.getElementById('goBest').textContent=bestScore;
+  document.getElementById('goEmoji').textContent=score>=50?'😿':'🙀';
+  document.getElementById('newBestEl').style.display=isNew?'block':'none';
+  OV.innerHTML='';
+  show('gameOverScreen');
+}
+</script>
+</body>
+</html>
