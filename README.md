@@ -23,3 +23,5 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/jeu-de-dames_v1.html>
 
+<https://rbtech-cyber.github.io/Rbt_jeux/des-lettres_1.html>
+
