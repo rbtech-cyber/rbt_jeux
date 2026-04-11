@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boggle Web</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --primary-color: #007bff;
+            --dice-bg: #fff;
+            --dice-border: #ccc;
+            --dice-selected: #ffeaa7;
+            --dice-shadow: rgba(0,0,0,0.1);
+            --header-bg: #fff;
+            --panel-bg: #fff;
+        }
+
+        body.dark-mode {
+            --bg-color: #1a1a2e;
+            --text-color: #e0e0e0;
+            --primary-color: #4facfe;
+            --dice-bg: #16213e;
+            --dice-border: #0f3460;
+            --dice-selected: #e94560;
+            --dice-shadow: rgba(0,0,0,0.5);
+            --header-bg: #16213e;
+            --panel-bg: #16213e;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); 
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;
+            background-color: var(--header-bg); box-shadow: 0 2px 5px var(--dice-shadow);
+        }
+
+        header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; }
+
+        .settings-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-color); cursor: pointer; }
+
+        .settings-panel {
+            display: none; padding: 15px; background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--dice-border);
+        }
+        .settings-panel.active { display: block; }
+        .setting-item { display: flex; justify-content: space-between; margin-bottom: 10px; }
+
+        .game-info { display: flex; justify-content: space-between; padding: 10px 20px; font-weight: bold; font-size: 1.2rem; }
+
+        .main-game { flex-grow: 1; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+            width: 100%; max-width: 400px; margin-bottom: 20px;
+        }
+
+        .dice {
+            aspect-ratio: 1; display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; font-weight: bold; text-transform: uppercase;
+            background-color: var(--dice-bg); border: 2px solid var(--dice-border);
+            border-radius: 12px; box-shadow: 0 4px 0 var(--dice-border), 0 5px 5px var(--dice-shadow);
+            cursor: pointer; user-select: none; transition: transform 0.1s;
+        }
+
+        .dice:active { transform: translateY(4px); box-shadow: 0 0 0 var(--dice-border); }
+        .dice.selected { background-color: var(--dice-selected); border-color: var(--primary-color); color: #333; }
+
+        .controls { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; }
+        
+        .current-word { font-size: 1.8rem; font-weight: bold; height: 40px; margin-bottom: 10px; letter-spacing: 3px; }
+
+        .action-btns { display: flex; gap: 10px; width: 100%; }
+        .btn {
+            flex: 1; padding: 15px; font-size: 1rem; font-weight: bold; border: none; border-radius: 8px;
+            cursor: pointer; color: white;
+        }
+        .btn-clear { background-color: #ff4757; }
+        .btn-submit { background-color: #2ed573; }
+        .btn-new { background-color: var(--primary-color); width: 100%; max-width: 400px; padding: 15px; margin-top: 10px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer;}
+
+        .word-list {
+            flex-grow: 1; width: 100%; max-width: 400px; margin-top: 15px; overflow-y: auto;
+            border-top: 2px solid var(--dice-border); padding-top: 10px;
+        }
+        .word-list ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+        .word-list li { background-color: var(--header-bg); padding: 5px 10px; border-radius: 15px; font-size: 0.9rem; box-shadow: 0 2px 4px var(--dice-shadow); }
+
+        .game-over { color: #ff4757; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>BOGGLE</h1>
+        <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+    </header>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="setting-item">
+            <label for="themeToggle">Mode Sombre</label>
+            <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+        </div>
+        <div class="setting-item">
+            <label for="soundToggle">Son</label>
+            <input type="checkbox" id="soundToggle" checked>
+        </div>
+        <div class="setting-item">
+            <label for="vibToggle">Vibration</label>
+            <input type="checkbox" id="vibToggle" checked>
+        </div>
+    </div>
+
+    <div class="game-info">
+        <span id="timer">03:00</span>
+        <span id="score">0 pts</span>
+    </div>
+
+    <main class="main-game">
+        <div class="grid" id="grid"></div>
+        
+        <div class="controls">
+            <div class="current-word" id="currentWordDisplay"></div>
+            <div class="action-btns">
+                <button class="btn btn-clear" onclick="clearSelection()">Effacer ✖</button>
+                <button class="btn btn-submit" onclick="submitWord()">Valider ✔</button>
+            </div>
+            <button class="btn btn-new" onclick="initGame()">Nouvelle Partie</button>
+        </div>
+
+        <div class="word-list">
+            <ul id="foundWordsList"></ul>
+        </div>
+    </main>
+
+    <script>
+        // Dés standards du Boggle Français
+        const DICE = [
+            'ETUKNO', 'EVGTIN', 'DECAMP', 'IELRUW', 
+            'EHIFSE', 'RECALS', 'ENTDOS', 'OFXRIA', 
+            'NAVDZE', 'EIOATA', 'GLENYU', 'BMAQJO', 
+            'TLIBRA', 'SPULTE', 'AIMSOR', 'ENHRIS'
+        ];
+
+        let grid = [];
+        let selectedPath = [];
+        let foundWords = [];
+        let score = 0;
+        let timeLeft = 180; // 3 minutes
+        let timerInterval;
+        let isGameActive = false;
+
+        // Context Audio pour le son
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type, duration) {
+            if (!document.getElementById('soundToggle').checked) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function triggerVibration(pattern) {
+            if (!document.getElementById('vibToggle').checked || !navigator.vibrate) return;
+            navigator.vibrate(pattern);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('active');
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function initGame() {
+            clearInterval(timerInterval);
+            grid = []; selectedPath = []; foundWords = []; score = 0; timeLeft = 180;
+            isGameActive = true;
+            
+            document.getElementById('score').innerText = '0 pts';
+            document.getElementById('timer').classList.remove('game-over');
+            document.getElementById('foundWordsList').innerHTML = '';
+            clearSelection();
+
+            // Génération de la grille
+            const shuffledDice = shuffle([...DICE]);
+            const gridContainer = document.getElementById('grid');
+            gridContainer.innerHTML = '';
+
+            for (let i = 0; i < 16; i++) {
+                const die = shuffledDice[i];
+                const letter = die[Math.floor(Math.random() * die.length)];
+                grid.push(letter);
+
+                const div = document.createElement('div');
+                div.className = 'dice';
+                div.innerText = letter === 'Q' ? 'QU' : letter; // Règle spéciale du Q
+                div.dataset.index = i;
+                div.onclick = () => handleTileClick(i);
+                gridContainer.appendChild(div);
+            }
+
+            updateTimerDisplay();
+            timerInterval = setInterval(countdown, 1000);
+            playTone(440, 'sine', 0.1);
+        }
+
+        function isAdjacent(idx1, idx2) {
+            const r1 = Math.floor(idx1 / 4), c1 = idx1 % 4;
+            const r2 = Math.floor(idx2 / 4), c2 = idx2 % 4;
+            return Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1;
+        }
+
+        function handleTileClick(index) {
+            if (!isGameActive) return;
+            initAudio(); // Assure l'activation audio sur l'interaction utilisateur
+
+            const diceElements = document.querySelectorAll('.dice');
+            const clickedDie = diceElements[index];
+
+            // Si on clique sur la dernière lettre, on la désélectionne
+            if (selectedPath.length > 0 && selectedPath[selectedPath.length - 1] === index) {
+                selectedPath.pop();
+                clickedDie.classList.remove('selected');
+                updateCurrentWord();
+                playTone(300, 'triangle', 0.1);
+                triggerVibration(10);
+                return;
+            }
+
+            // Vérifier si déjà utilisé
+            if (selectedPath.includes(index)) {
+                triggerVibration([50, 50]);
+                return; 
+            }
+
+            // Vérifier la contiguïté
+            if (selectedPath.length > 0 && !isAdjacent(selectedPath[selectedPath.length - 1], index)) {
+                triggerVibration([50, 50]);
+                return;
+            }
+
+            // Valide la sélection
+            selectedPath.push(index);
+            clickedDie.classList.add('selected');
+            updateCurrentWord();
+            playTone(600, 'sine', 0.1);
+            triggerVibration(15);
+        }
+
+        function updateCurrentWord() {
+            const word = selectedPath.map(i => grid[i] === 'Q' ? 'QU' : grid[i]).join('');
+            document.getElementById('currentWordDisplay').innerText = word;
+        }
+
+        function clearSelection() {
+            selectedPath = [];
+            document.querySelectorAll('.dice').forEach(d => d.classList.remove('selected'));
+            updateCurrentWord();
+        }
+
+        function calculateScore(wordLength) {
+            if (wordLength <= 4) return 1;
+            if (wordLength === 5) return 2;
+            if (wordLength === 6) return 3;
+            if (wordLength === 7) return 5;
+            return 11;
+        }
+
+        // ATTENTION: Pour que le jeu soit 100% autonome ici, je simule la vérification du dictionnaire.
+        // Dans une vraie application, vous feriez un appel fetch() vers une API ou un fichier texte (liste de mots).
+        function isValidWord(word) {
+            // Mock: On accepte tous les mots de 3 lettres ou plus pour la démonstration.
+            return word.length >= 3; 
+        }
+
+        function submitWord() {
+            if (!isGameActive) return;
+            const word = selectedPath.map(i => grid[i] === 'Q' ? 'QU' : grid[i]).join('');
+            
+            if (word.length < 3) {
+                playTone(200, 'sawtooth', 0.2);
+                triggerVibration([50, 50, 50]);
+                clearSelection();
+                return;
+            }
+
+            if (foundWords.includes(word)) {
+                playTone(200, 'sawtooth', 0.2);
+                triggerVibration([50, 50, 50]);
+                clearSelection();
+                return;
+            }
+
+            if (isValidWord(word)) {
+                foundWords.push(word);
+                const pts = calculateScore(word.length);
+                score += pts;
+                document.getElementById('score').innerText = `${score} pts`;
+                
+                const li = document.createElement('li');
+                li.innerText = `${word} (${pts})`;
+                document.getElementById('foundWordsList').prepend(li);
+                
+                playTone(800, 'square', 0.1);
+                setTimeout(() => playTone(1200, 'square', 0.15), 100);
+                triggerVibration([30, 50, 30]);
+            } else {
+                playTone(200, 'sawtooth', 0.2);
+                triggerVibration([50, 50, 50]);
+            }
+            clearSelection();
+        }
+
+        function countdown() {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                endGame();
+            } else if (timeLeft <= 10) {
+                playTone(1000, 'sine', 0.1); // Bip de fin
+            }
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = `${m}:${s}`;
+            if (timeLeft <= 10) timerEl.classList.add('game-over');
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            isGameActive = false;
+            document.getElementById('timer').innerText = "Terminé!";
+            playTone(400, 'sawtooth', 0.5);
+            setTimeout(() => playTone(300, 'sawtooth', 0.8), 500);
+            triggerVibration([100, 50, 100, 50, 200]);
+            clearSelection();
+            alert(`Temps écoulé ! Votre score est de ${score} points avec ${foundWords.length} mots trouvés.`);
+        }
+
+        // Lancement au chargement
+        window.onload = initGame;
+    </script>
+</body>
+</html>
