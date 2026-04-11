@@ -17,8 +17,6 @@ Jeux html test
 
 <https://rbtech-cyber.github.io/Rbt_jeux/pong4x>
 
-<https://rbtech-cyber.github.io/Rbt_jeux/chordsheet_v2-5b>
-
 <https://rbtech-cyber.github.io/Rbt_jeux/labyrinthe_v1-3>
 
 <https://rbtech-cyber.github.io/Rbt_jeux/jeu_grille_croissante_v1-2.html>
