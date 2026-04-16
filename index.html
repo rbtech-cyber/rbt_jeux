@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Portfolio d'Applications GitHub</title>
+    <style>
+        :root {
+            --github-dark: #24292e;
+            --github-bg: #f6f8fa;
+            --github-border: #d1d5da;
+            --accent-blue: #0366d6;
+            --text-main: #24292e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--github-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--github-dark);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--github-border);
+            border-radius: 6px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: var(--accent-blue);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            color: var(--accent-blue);
+        }
+
+        .card p {
+            font-size: 0.9rem;
+            color: #586069;
+            flex-grow: 1;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #eff3f6;
+            background-image: linear-gradient(-180deg, #fafbfc, #eff3f6 90%);
+            border: 1px solid rgba(27,31,35,0.15);
+            border-radius: 6px;
+            color: #24292e;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 6px 16px;
+            text-decoration: none;
+            text-align: center;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #e6ebf1;
+            background-image: none;
+            border-color: rgba(27,31,35,0.2);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #6a737d;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Mes Applications GitHub</h1>
+        <p>Répertoire centralisé de mes projets et déploiements</p>
+    </header>
+
+    <div class="container">
+        <div class="grid">
+            
+            <div class="card">
+                <h2>Nom de l'Appli 1</h2>
+                <p>Description courte de ce que fait cette application. Par exemple : Un gestionnaire de tâches en React.</p>
+                <a href="URL_DE_VOTRE_APPLI_ICI" class="btn" target="_blank">Ouvrir l'application</a>
+                <a href="URL_DU_REPO_GITHUB" class="btn" style="margin-top: 5px; background: none;" target="_blank">Voir le code source</a>
+            </div>
+
+            <div class="card">
+                <h2>Nom de l'Appli 2</h2>
+                <p>Analyse de données météo en temps réel avec API OpenWeather.</p>
+                <a href="URL_DE_VOTRE_APPLI_ICI" class="btn" target="_blank">Ouvrir l'application</a>
+                <a href="URL_DU_REPO_GITHUB" class="btn" style="margin-top: 5px; background: none;" target="_blank">Voir le code source</a>
+            </div>
+
+            <div class="card">
+                <h2>Nom de l'Appli 3</h2>
+                <p>Portfolio personnel construit avec HTML/CSS et déployé via GitHub Pages.</p>
+                <a href="URL_DE_VOTRE_APPLI_ICI" class="btn" target="_blank">Ouvrir l'application</a>
+                <a href="URL_DU_REPO_GITHUB" class="btn" style="margin-top: 5px; background: none;" target="_blank">Voir le code source</a>
+            </div>
+
+            </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 - Généré pour GitHub Pages</p>
+    </footer>
+
+</body>
+</html>
