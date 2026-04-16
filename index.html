@@ -3,141 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Portfolio d'Applications GitHub</title>
+    <title>My Game Library | GitHub</title>
     <style>
         :root {
-            --github-dark: #24292e;
-            --github-bg: #f6f8fa;
-            --github-border: #d1d5da;
-            --accent-blue: #0366d6;
-            --text-main: #24292e;
+            --bg-color: #0b0e14;
+            --card-bg: #161b22;
+            --text-color: #e6edf3;
+            --accent-color: #79c0ff; /* Bleu néon */
+            --secondary-color: #d2a8ff; /* Violet néon */
+            --border-color: #30363d;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background-color: var(--github-bg);
-            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
-            line-height: 1.6;
         }
 
         header {
-            background-color: var(--github-dark);
-            color: white;
-            padding: 2rem 1rem;
+            background: linear-gradient(135deg, #1f6feb 0%, #8957e5 100%);
+            padding: 3rem 1rem;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .container {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
         }
 
-        .card {
-            background: white;
-            border: 1px solid var(--github-border);
-            border-radius: 6px;
-            padding: 1.5rem;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .game-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border-color: var(--accent-blue);
-        }
-
-        .card h2 {
-            margin-top: 0;
-            font-size: 1.25rem;
-            color: var(--accent-blue);
-        }
-
-        .card p {
-            font-size: 0.9rem;
-            color: #586069;
-            flex-grow: 1;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: #eff3f6;
-            background-image: linear-gradient(-180deg, #fafbfc, #eff3f6 90%);
-            border: 1px solid rgba(27,31,35,0.15);
-            border-radius: 6px;
-            color: #24292e;
-            font-size: 0.9rem;
-            font-weight: 600;
-            padding: 6px 16px;
-            text-decoration: none;
-            text-align: center;
-            margin-top: 1rem;
-            cursor: pointer;
-        }
-
-        .btn:hover {
-            background-color: #e6ebf1;
-            background-image: none;
-            border-color: rgba(27,31,35,0.2);
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 3rem;
-            padding: 1rem;
-            font-size: 0.8rem;
-            color: #6a737d;
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <h1>Mes Applications GitHub</h1>
-        <p>Répertoire centralisé de mes projets et déploiements</p>
-    </header>
-
-    <div class="container">
-        <div class="grid">
-            
-            <div class="card">
-                <h2>Nom de l'Appli 1</h2>
-                <p>Description courte de ce que fait cette application. Par exemple : Un gestionnaire de tâches en React.</p>
-                <a href="URL_DE_VOTRE_APPLI_ICI" class="btn" target="_blank">Ouvrir l'application</a>
-                <a href="URL_DU_REPO_GITHUB" class="btn" style="margin-top: 5px; background: none;" target="_blank">Voir le code source</a>
-            </div>
-
-            <div class="card">
-                <h2>Nom de l'Appli 2</h2>
-                <p>Analyse de données météo en temps réel avec API OpenWeather.</p>
-                <a href="URL_DE_VOTRE_APPLI_ICI" class="btn" target="_blank">Ouvrir l'application</a>
-                <a href="URL_DU_REPO_GITHUB" class="btn" style="margin-top: 5px; background: none;" target="_blank">Voir le code source</a>
-            </div>
-
-            <div class="card">
-                <h2>Nom de l'Appli 3</h2>
-                <p>Portfolio personnel construit avec HTML/CSS et déployé via GitHub Pages.</p>
-                <a href="URL_DE_VOTRE_APPLI_ICI" class="btn" target="_blank">Ouvrir l'application</a>
-                <a href="URL_DU_REPO_GITHUB" class="btn" style="margin-top: 5px; background: none;" target="_blank">Voir le code source</a>
-            </div>
-
-            </div>
-    </div>
-
-    <footer>
-        <p>&copy; 2023 - Généré pour GitHub Pages</p>
-    </footer>
-
-</body>
-</html>
+        .game-card:hover {
+        
