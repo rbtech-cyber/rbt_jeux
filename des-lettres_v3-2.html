@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Boggle FR</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --surface2: #e8eaf0;
+            --border: #d0d4de;
+            --text: #1a1a2e;
+            --text2: #555;
+            --primary: #3a7bd5;
+            --primary-dark: #2960b8;
+            --accent: #f7c948;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --dice-sel-bg: #ffeaa7;
+            --dice-sel-border: #f0a500;
+            --shadow: rgba(0,0,0,0.08);
+            --shadow-dice: rgba(0,0,0,0.15);
+            --timer-warn: #e74c3c;
+            --tag-bg: #eef2ff;
+            --tag-text: #3a7bd5;
+            --tag-bg5: #fff3cd;
+            --tag-text5: #856404;
+            --modal-bg: rgba(0,0,0,0.55);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0f0f1a;
+                --surface: #1a1a2e;
+                --surface2: #16213e;
+                --border: #0f3460;
+                --text: #e8e8f0;
+                --text2: #9999bb;
+                --primary: #4facfe;
+                --primary-dark: #3d9ae8;
+                --accent: #f7c948;
+                --danger: #ff6b6b;
+                --success: #55efc4;
+                --dice-sel-bg: #4a1942;
+                --dice-sel-border: #e94560;
+                --shadow: rgba(0,0,0,0.4);
+                --shadow-dice: rgba(0,0,0,0.6);
+                --timer-warn: #ff6b6b;
+                --tag-bg: #1a2744;
+                --tag-text: #4facfe;
+                --tag-bg5: #2d2000;
+                --tag-text5: #f7c948;
+                --modal-bg: rgba(0,0,0,0.75);
+            }
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f0f1a;
+            --surface: #1a1a2e;
+            --surface2: #16213e;
+            --border: #0f3460;
+            --text: #e8e8f0;
+            --text2: #9999bb;
+            --primary: #4facfe;
+            --primary-dark: #3d9ae8;
+            --accent: #f7c948;
+            --danger: #ff6b6b;
+            --success: #55efc4;
+            --dice-sel-bg: #4a1942;
+            --dice-sel-border: #e94560;
+            --shadow: rgba(0,0,0,0.4);
+            --shadow-dice: rgba(0,0,0,0.6);
+            --timer-warn: #ff6b6b;
+            --tag-bg: #1a2744;
+            --tag-text: #4facfe;
+            --tag-bg5: #2d2000;
+            --tag-text5: #f7c948;
+            --modal-bg: rgba(0,0,0,0.75);
+        }
+
+        [data-theme="light"] {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --surface2: #e8eaf0;
+            --border: #d0d4de;
+            --text: #1a1a2e;
+            --text2: #555;
+            --primary: #3a7bd5;
+            --primary-dark: #2960b8;
+            --accent: #f7c948;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --dice-sel-bg: #ffeaa7;
+            --dice-sel-border: #f0a500;
+            --shadow: rgba(0,0,0,0.08);
+            --shadow-dice: rgba(0,0,0,0.15);
+            --timer-warn: #e74c3c;
+            --tag-bg: #eef2ff;
+            --tag-text: #3a7bd5;
+            --tag-bg5: #fff3cd;
+            --tag-text5: #856404;
+            --modal-bg: rgba(0,0,0,0.55);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* ── HEADER ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--surface);
+            box-shadow: 0 2px 6px var(--shadow);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: var(--primary);
+        }
+
+        .header-right { display: flex; gap: 8px; }
+
+        .icon-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 38px; height: 38px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: var(--text);
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .icon-btn:active { background: var(--border); }
+
+        /* ── SETTINGS PANEL ── */
+        .settings-panel {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s;
+            flex-shrink: 0;
+        }
+        .settings-panel.open {
+            max-height: 200px;
+            padding: 12px 16px;
+        }
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.9rem;
+            color: var(--text2);
+        }
+        .setting-row label { font-weight: 600; color: var(--text); }
+
+        /* Toggle switch */
+        .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; inset: 0;
+            background: var(--border);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 3px; left: 3px;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .toggle input:checked + .toggle-slider { background: var(--primary); }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+        /* ── SCOREBOARD ── */
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .score-box {
+            text-align: center;
+        }
+        .score-box .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+        .score-box .value { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+        #timerValue.warn { color: var(--timer-warn); animation: blink 0.7s infinite; }
+        @keyframes blink { 50% { opacity: 0.4; } }
+
+        /* ── MAIN ── */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            padding: 10px 12px 6px;
+            gap: 8px;
+        }
+
+        /* ── GRID ── */
+        .grid-wrap {
+            width: 100%;
+            max-width: 360px;
+            flex-shrink: 0;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .dice {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.3rem, 6vw, 1.8rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 4px 0 var(--border), 0 6px 8px var(--shadow-dice);
+            cursor: pointer;
+            transition: background 0.1s, transform 0.1s;
+            position: relative;
+        }
+        .dice.selected {
+            background: var(--dice-sel-bg);
+            border-color: var(--dice-sel-border);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 var(--dice-sel-border), 0 8px 12px var(--shadow-dice);
+        }
+        .dice.selected::after {
+            content: attr(data-order);
+            position: absolute;
+            top: 3px; right: 5px;
+            font-size: 0.5rem;
+            font-weight: 700;
+            color: var(--dice-sel-border);
+            opacity: 0.8;
+        }
+        .dice:active:not(.selected) { transform: translateY(3px); box-shadow: 0 1px 0 var(--border); }
+
+        /* ── WORD DISPLAY ── */
+        .word-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 360px;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        #currentWord {
+            font-size: clamp(1.4rem, 7vw, 2rem);
+            font-weight: 900;
+            letter-spacing: 6px;
+            min-height: 42px;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn {
+            padding: 13px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.15s, transform 0.1s;
+            letter-spacing: 0.5px;
+        }
+        .btn:active { opacity: 0.8; transform: scale(0.97); }
+        .btn-clear { background: var(--danger); }
+        .btn-submit { background: var(--success); }
+        .btn-new {
+            width: 100%;
+            background: var(--primary);
+            padding: 11px;
+            font-size: 0.9rem;
+        }
+
+        /* ── FOUND WORDS ── */
+        .found-section {
+            flex: 1;
+            width: 100%;
+            max-width: 360px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border-top: 2px solid var(--border);
+            padding-top: 6px;
+        }
+        .found-section h3 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text2);
+            margin-bottom: 6px;
+        }
+
+        #foundList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            list-style: none;
+        }
+
+        #foundList li {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+        }
+        #foundList li.len5 {
+            background: var(--tag-bg5);
+            color: var(--tag-text5);
+        }
+
+        /* ── FLASH FEEDBACK ── */
+        #flashMsg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 28px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 200;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 8px 32px var(--shadow);
+            text-align: center;
+        }
+        #flashMsg.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* ── MODAL FIN DE PARTIE ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--modal-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            transform: scale(0.85);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.show .modal { transform: scale(1); }
+        .modal .emoji { font-size: 3rem; margin-bottom: 10px; }
+        .modal h2 { font-size: 1.4rem; color: var(--text); margin-bottom: 8px; }
+        .modal .stats { color: var(--text2); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.6; }
+        .modal .big-score { font-size: 2.5rem; font-weight: 900; color: var(--primary); margin: 8px 0; }
+        .modal .btn-modal {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>BOGGLE</h1>
+    <div class="header-right">
+        <button class="icon-btn" id="themeBtn" title="Thème" onclick="cycleTheme()">🌓</button>
+        <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
+    </div>
+</header>
+
+<div class="settings-panel" id="settingsPanel">
+    <div class="setting-row">
+        <label>Son</label>
+        <label class="toggle"><input type="checkbox" id="soundToggle" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+        <label>Vibration</label>
+        <label class="toggle"><input type="checkbox" id="vibToggle" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row" style="font-size:0.75rem;color:var(--text2);">
+        Mots valides : 3 à 5 lettres adjacentes
+    </div>
+</div>
+
+<div class="scoreboard">
+    <div class="score-box">
+        <div class="label">Temps</div>
+        <div class="value" id="timerValue">3:00</div>
+    </div>
+    <div class="score-box">
+        <div class="label">Score</div>
+        <div class="value" id="scoreValue">0</div>
+    </div>
+    <div class="score-box">
+        <div class="label">Mots</div>
+        <div class="value" id="wordCount">0</div>
+    </div>
+</div>
+
+<main>
+    <div class="grid-wrap">
+        <div id="grid"></div>
+    </div>
+
+    <div class="word-zone">
+        <div id="currentWord"></div>
+        <div class="action-row">
+            <button class="btn btn-clear" onclick="clearSelection()">✖ Effacer</button>
+            <button class="btn btn-submit" onclick="submitWord()">✔ Valider</button>
+        </div>
+        <button class="btn btn-new" onclick="initGame()">🔀 Nouvelle Partie</button>
+    </div>
+
+    <div class="found-section">
+        <h3 id="foundLabel">Mots trouvés</h3>
+        <ul id="foundList"></ul>
+    </div>
+</main>
+
+<div id="flashMsg"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="emoji" id="modalEmoji">🏆</div>
+        <h2>Partie terminée !</h2>
+        <div class="big-score" id="modalScore">0 pts</div>
+        <div class="stats" id="modalStats"></div>
+        <button class="btn-modal" onclick="initGame()">🔀 Nouvelle Partie</button>
+    </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  DICTIONNAIRE FRANÇAIS — 3 à 5 lettres
+// ════════════════════════════════════════════════════
+const MOTS_STR = "ABAT,ABATS,ABCE,ABCES,ABDO,ABE,ABEIR,ABEJA,ABET,ABETE,ABETI,ABIME,ABLE,ABOI,ABOIE,ABORD,ABOUT,ABRI,ABRIS,ABUS,ABYME,ACCES,ACES,ACHAT,ACIDE,ACIER,ACNE,ACNEE,ACRE,ACRES,ACTE,ACTES,ACTIF,ADAGE,ADIEU,ADJU,ADO,ADORE,ADRET,ADULT,AETES,AFIN,AFRO,AFROS,AGAR,AGAVE,AGEES,AGES,AGILE,AGIO,AGIOS,AGIR,AGIT,AGITE,AGNO,AGO,AGONE,AGOUT,AGREE,AGRO,AHO,AIDE,AIDES,AIE,AIES,AIGLE,AIGU,AIL,AILE,AILES,AILS,AIMER,AINE,AIR,AIRE,AIRED,AIRS,AISE,AISES,AKA,ALARM,ALAS,ALBE,ALBI,ALBUM,ALCO,ALENE,ALEPH,ALES,ALGE,ALGUE,ALIBI,ALLEE,ALLIE,ALOE,ALOES,ALOI,ALOSE,ALPA,ALPE,ALPIN,ALTE,ALTES,ALUN,AMA,AMAS,AMBLE,AMBRE,AME,AMEN,AMER,AMID,AMIE,AMINE,AMIS,AMO,AMOK,AMONT,AMOR,AMOUR,AMPE,AMPLE,AMSEL,AMUSE,ANA,ANAL,ANAR,ANCRE,ANE,ANES,ANGE,ANGEE,ANGLE,ANI,ANIME,ANIS,ANNEE,ANO,ANODE,ANON,ANSE,ANTE,ANTES,ANTI,AOC,APE,APEX,APNEE,APO,APPEL,APPUI,APRE,APRES,APTE,APTER,AQUA,ARAB,ARBRE,ARC,ARCHE,ARCS,ARDU,AREE,ARENE,ARES,ARG,ARGON,ARGOT,ARI,ARIA,ARION,ARIS,ARME,ARMER,ARNE,ARO,AROME,ARP,ARPE,ARRET,ARSON,ART,ARTS,ASE,ASPE,ASPIC,ASSE,ASSEZ,ASSI,ASTRE,ATE,ATI,ATLAS,ATMA,ATO,ATOL,ATOME,ATOUT,ATTA,AUA,AUBER,AUBES,AUNES,AUSSI,AUTO,AUTRE,AUX,AVA,AVALE,AVANT,AVARE,AVE,AVEC,AVEN,AVES,AVEU,AVEUX,AVI,AVIDE,AVION,AVO,AVOIR,AXE,AXEL,AXER,AXES,AZO,AZUR,AZYME,BABA,BAC,BACA,BACS,BADE,BADGE,BAFF,BAGO,BAGUE,BAHO,BAIE,BAIL,BAIN,BAIS,BAKA,BAL,BALE,BALK,BALO,BALS,BAME,BAN,BANAL,BANDE,BANE,BANS,BAR,BARBE,BARD,BARG,BARO,BARR,BARRE,BARS,BARU,BASE,BASER,BAT,BATA,BATE,BATIR,BATS,BATU,BAUD,BAUME,BAVE,BAZAR,BEAL,BEAU,BEAUX,BEC,BECHE,BECS,BEDEL,BEDON,BEEL,BEGA,BEGUE,BEIGE,BELE,BELGE,BELIN,BELO,BELON,BELOW,BELT,BENCH,BENE,BENI,BENIN,BENO,BEOT,BERE,BERGE,BERME,BERNE,BERO,BERYL,BESES,BETEL,BETO,BETON,BETS,BEUR,BEUT,BIBU,BIDET,BIEF,BIEN,BIENS,BIGE,BIGHT,BIGOT,BILAN,BILE,BILLE,BIMES,BINER,BINET,BION,BIONS,BIRU,BISA,BISE,BISON,BITE,BITO,BIVAC,BLASE,BLAVE,BLAZE,BLE,BLED,BLEME,BLEND,BLEPS,BLET,BLEU,BLEUS,BLIER,BLINI,BLOC,BLOND,BOA,BOAS,BOBO,BOBS,BOCAL,BOCK,BOF,BOGUE,BOIRE,BOITE,BOL,BOLA,BOLDU,BOLET,BOLGE,BOLO,BOLS,BOMBE,BON,BONE,BONNE,BONS,BONZE,BOOKS,BOOM,BOON,BORAX,BORDE,BORDS,BORDU,BORE,BORI,BORO,BORT,BOT,BOTA,BOTE,BOTOX,BOTS,BOUE,BOUEE,BOUES,BOUF,BOUL,BOULE,BOUR,BOURG,BOUT,BOWLS,BOX,BOY,BOYAU,BRAN,BRAS,BRAVE,BRAVO,BRE,BREA,BREF,BREN,BRETS,BREVE,BREWE,BRIC,BRIDE,BRIME,BRIN,BRIO,BRISE,BRO,BROME,BROU,BROUT,BRU,BRUIE,BRULE,BRUME,BRUN,BRUNE,BRUTS,BUCA,BUCHE,BUEES,BUER,BUGA,BUIS,BULLE,BURIN,BURKA,BURNE,BURON,BUSE,BUSER,BUT,BUTA,BUTER,BUTS,CABUS,CACAO,CACE,CAD,CADET,CADRE,CAEC,CAF,CAFE,CAGE,CAGO,CAHO,CAID,CALC,CALE,CALI,CALM,CALME,CALO,CAMA,CAME,CAMI,CAMP,CAMPE,CANAL,CANE,CAO,CAPI,CAPO,CAPS,CAR,CARER,CAREX,CARI,CARJ,CARN,CARO,CARPE,CARRE,CARS,CARTE,CARUE,CAS,CAST,CAT,CATA,CATI,CAU,CAUSE,CAUTS,CAV,CAVE,CECI,CEDER,CEGE,CEINT,CEL,CELA,CELES,CELI,CELTS,CENE,CENO,CENS,CENTS,CEPE,CEPES,CEPS,CERI,CERNE,CERS,CES,CET,CETA,CETAN,CETO,CHAI,CHAIN,CHALE,CHAMP,CHAN,CHANT,CHAO,CHAOS,CHAPE,CHAR,CHART,CHAT,CHAU,CHAUD,CHAUX,CHEF,CHENE,CHER,CHERI,CHEVE,CHIC,CHIE,CHIEN,CHIN,CHIOR,CHIPS,CHOC,CHOIR,CHOIX,CHOP,CHOPE,CHOSE,CHOU,CHUTE,CIBLE,CIEL,CILS,CIME,CINEE,CIPO,CIRE,CIRO,CITE,CITER,CIVEL,CIVIL,CLAIR,CLAM,CLAME,CLAMP,CLAN,CLANS,CLAP,CLAS,CLASP,CLAT,CLE,CLEF,CLIN,CLIP,CLOP,CLOPE,CLORE,CLOSE,CLUB,CLUE,COAT,COCA,COCO,COCON,CODA,CODE,CODEX,COEUR,COI,COIF,COIN,COING,COL,COLA,COLE,COLIS,COLN,COLON,COLS,COLZA,COME,COMET,COMMA,COMME,COMPA,COMS,CONE,CONI,CONTE,COPE,COPIE,COPS,COQ,COR,CORDE,CORE,CORN,CORPS,CORS,COSSE,COSSU,COTE,COU,COUA,COUDE,COUE,COUP,COUPE,COUR,COURS,COURT,COURU,COUS,COUTE,CRABE,CRAN,CRANE,CRAS,CREPE,CRI,CRIER,CRIME,CRIN,CRIPE,CRISP,CROA,CROCS,CRON,CRONE,CROP,CROUP,CROW,CRU,CRUEL,CRUPE,CRUS,CRUSE,CRUX,CUBA,CUBE,CUBEP,CUL,CULOT,CUMIN,CURE,CURIE,CURIO,CURVE,CYAN,CYCLE,DACE,DAD,DADA,DAGO,DAGUE,DAH,DAIS,DAL,DALLE,DALO,DALS,DAME,DAMS,DAN,DAO,DAP,DAPHN,DARD,DARE,DATER,DAU,DAUB,DAUBE,DEBUT,DECO,DECOR,DEDE,DEDI,DEF,DEGAT,DEJA,DEL,DELE,DELTA,DEM,DEMI,DEMO,DEN,DENE,DENSE,DENT,DEP,DEPO,DEPOT,DER,DES,DEV,DEVIS,DEY,DIAM,DIAP,DICOT,DIE,DIETE,DIEU,DIEZ,DIF,DIGNE,DIM,DIN,DINE,DINO,DIO,DIP,DIR,DIRE,DIS,DISC,DISCO,DIT,DITS,DIV,DIVE,DIX,DOC,DOCE,DOCS,DOCTE,DOGME,DOIGT,DOLCE,DOLE,DOM,DOME,DOMO,DON,DOP,DOPE,DORI,DORM,DORS,DOS,DOSE,DOSER,DOT,DOTE,DOUCE,DOUE,DOUTE,DRAP,DRAW,DREE,DROIT,DRONE,DROP,DRU,DUB,DUC,DUCAT,DUD,DUE,DUELS,DUG,DUI,DUL,DUM,DUN,DUNE,DUO,DUOS,DUP,DUR,DURE,DURS,DUVET,EAU,EAUX,EBAHI,EBAN,EBE,EBENE,EBONE,ECHEC,ECHO,ECLAT,ECO,ECOT,ECRAN,ECRIN,ECROU,ECRU,ECU,ECUS,EDDA,EDE,EDILE,EDRE,EFIL,EGA,EGAL,EGALE,EGO,EGON,EGOUE,EGOUT,EGU,EKER,ELA,ELAN,ELANS,ELE,ELEVE,ELI,ELITE,ELME,ELO,ELOGE,ELU,ELUDA,ELUDE,EME,EMERI,EMETS,EMI,EMILE,EMIR,EMIRS,EMO,EMOI,EMOLE,EMONT,EMU,EMULE,ENCAN,ENCAS,ENE,ENFER,ENGIN,ENI,ENO,ENOL,ENTEE,ENTRE,ENU,ENVI,ENVIE,ENVU,ENVY,EPAIS,EPARS,EPAVE,EPE,EPEE,EPHE,EPI,EPINE,EPIS,EPOD,EPOS,EPOUX,ERAS,ERE,ERGO,ERI,ERNE,ERO,ERODE,EROS,ERPE,ERU,ESCOT,ESE,ESO,ESPE,ESSE,ESSOR,EST,ESTE,ETA,ETAGE,ETAI,ETAIN,ETALE,ETAPE,ETAS,ETAT,ETAU,ETE,ETHE,ETI,ETIRE,ETO,ETRE,ETU,ETUI,EUR,EURO,EUT,EUX,EVADE,EVEIL,EVOE,EVOL,EXACT,EXAM,EXERT,EXODE,EXON,EXPO,FACI,FAD,FADE,FADET,FADO,FAGO,FAGOT,FAH,FAHU,FAIN,FAIRE,FALL,FALOT,FAM,FAME,FANE,FANON,FAON,FAQIR,FARCE,FARD,FARDS,FARE,FARIN,FARO,FARSI,FASE,FASTE,FATS,FAU,FAUD,FAUN,FAUVE,FAUX,FAV,FAVE,FAX,FAY,FAZER,FEAL,FEE,FEI,FEL,FELE,FELER,FELON,FEM,FEN,FEND,FENS,FER,FERAL,FERE,FERI,FERME,FEROU,FERU,FES,FESSE,FET,FETA,FEU,FEUS,FEUX,FEV,FEVER,FIAL,FIBRE,FIC,FICHE,FID,FIER,FIG,FIGE,FIGER,FIL,FILA,FILE,FILLE,FILO,FILON,FILS,FIN,FINCA,FINI,FINS,FIO,FIRER,FIS,FISC,FISSU,FIT,FIX,FIXE,FLAC,FLAG,FLAIR,FLAN,FLAR,FLAU,FLOC,FLOE,FLOG,FLOP,FLORE,FLOT,FLOU,FLOUS,FLUE,FLUOR,FLUX,FOC,FOCA,FOCI,FOCUS,FOG,FOI,FOIE,FOIN,FOINS,FOLE,FOLIE,FON,FOND,FONT,FONTE,FOP,FORE,FORET,FORM,FORT,FORTE,FORTS,FORUM,FOS,FOSE,FOSSE,FOU,FOUET,FOUG,FOUR,FOX,FOY,FRAIS,FRANC,FRENE,FRERE,FRET,FRETE,FRIPE,FRIRE,FRIS,FRISE,FROC,FROD,FROE,FRON,FROT,FROU,FRUG,FUIT,FUITE,FUME,FUMEE,FUND,FUSIL,FUT,FUYAR,GAD,GADOU,GAEL,GAF,GAFE,GAG,GAGE,GAGER,GAH,GAI,GAINE,GALBE,GALE,GALL,GALON,GALOP,GAM,GAME,GAMET,GAMIN,GANE,GANG,GANSE,GANTE,GAO,GARDE,GARE,GARNI,GARO,GARS,GASH,GAT,GATE,GAU,GAUDE,GAV,GAVER,GAVOT,GAX,GAY,GAZ,GAZE,GAZO,GAZON,GECE,GEL,GELEE,GELS,GEM,GEMIR,GEMME,GEN,GENE,GENOU,GENRE,GENU,GEO,GER,GERCE,GERE,GERI,GERM,GES,GEST,GESTE,GEU,GIBE,GIDE,GIFLE,GIJO,GILD,GILL,GIN,GIRLY,GIRO,GIRON,GIS,GISER,GIT,GITE,GIVRE,GLACE,GLANE,GLAR,GLARE,GLEBE,GLENE,GLOBE,GLOP,GLU,GLUME,GNARI,GNAT,GNOME,GNON,GOB,GOBE,GOBER,GOBIE,GODET,GOI,GOLD,GOLFE,GOM,GON,GONCE,GOND,GONDS,GONE,GONER,GOP,GOR,GORE,GORET,GORGE,GORO,GOS,GOT,GOU,GOUA,GOUGE,GOULE,GOULU,GOURD,GOURE,GOUT,GOUTE,GOX,GOY,GRAAL,GRAB,GRACE,GRADE,GRAIE,GRAIN,GRANA,GRAPE,GRAS,GRAU,GRE,GREBE,GREE,GRELE,GRENU,GREVE,GRIL,GRIN,GRIOT,GRIPE,GRIS,GRISE,GROG,GROIN,GROOM,GROPE,GROS,GRUE,GRUME,GRUN,GUE,GUEI,GUET,GUEUX,GUI,GUIDE,GUISE,GULO,GUS,GUST,GUY,GYMNO,GYPSE,GYRIN,GYRON,HAC,HAD,HADE,HAG,HAIE,HALE,HALT,HAM,HAMPE,HAN,HANG,HAP,HARAS,HARDI,HARO,HARPE,HAS,HASE,HASTE,HATE,HAU,HAUD,HAUT,HAUTE,HAV,HAVE,HAX,HAY,HAYAN,HEB,HEBDO,HED,HEDU,HEIR,HEL,HELIO,HELO,HEM,HEN,HEO,HER,HERI,HERON,HERSE,HES,HET,HEU,HEUR,HEX,HEY,HIATE,HIBER,HIE,HIERO,HILE,HIM,HIMBO,HIN,HIP,HIPPO,HIS,HIT,HOBE,HOBO,HOC,HOD,HOI,HOIR,HOLD,HOLET,HOM,HOME,HON,HONE,HOP,HOR,HORDE,HORS,HOS,HOT,HOTE,HOU,HOUE,HOUET,HOUPE,HOUPU,HOX,HOY,HUB,HUE,HUER,HUI,HULA,HULL,HUM,HUMER,HUN,HUP,HUR,HURE,HURLE,HUS,HUT,HUTTE,HYENE,HYMEN,IDEA,IDEAL,IDEE,IDIOT,IDOL,IKEA,ILE,ILEX,ILOT,ILOTS,ILS,IMAGO,IMBU,IMMUN,IMO,IMPI,IMPUR,INCL,INDE,INDEX,INDIC,INDIE,INDRE,INDU,INFO,INOS,INTER,INTRU,INUIT,IODE,ION,IOTA,IPPON,IPSO,IRA,IRE,IRI,IRIS,IRON,IRS,ISO,JABIR,JABS,JACK,JACQ,JAD,JADE,JADIN,JAGER,JAH,JAIRE,JAIS,JAK,JALE,JAM,JAMB,JAMBE,JAN,JANTE,JAPE,JAR,JARD,JAS,JASE,JASER,JAT,JATO,JAU,JAUGE,JAUN,JAUNE,JAVA,JAVEL,JEDI,JER,JERK,JET,JETE,JETS,JEU,JEUX,JIS,JOB,JOBS,JOC,JOD,JOI,JOIE,JOLE,JOLIE,JOM,JON,JONGL,JOP,JOR,JOS,JOTA,JOTE,JOUE,JOUER,JOUG,JOUGS,JOUIR,JOULE,JOUR,JOURS,JOUTE,JOY,JUBIL,JUCHE,JUD,JUDAS,JUF,JUG,JUGAL,JUGE,JUGER,JUI,JUIF,JUK,JUKE,JUL,JULEP,JUM,JUN,JUP,JUPE,JUPON,JUR,JURA,JURAL,JURE,JURET,JURNE,JURON,JURY,JUS,JUST,JUT,KAK,KAKI,KALE,KAN,KANA,KAR,KART,KAT,KATA,KEP,KEPI,KETO,KHOL,KIL,KILT,KIN,KINA,KINK,KIT,KIW,KIWI,KUFI,KYMA,LAC,LACE,LACER,LACET,LACS,LAD,LADE,LAGON,LAH,LAI,LAICH,LAIER,LAM,LAME,LAMEL,LAMER,LAMP,LAMPE,LANCE,LAND,LAP,LAPER,LAPOT,LAPS,LAR,LARD,LARE,LAREE,LAS,LASER,LAST,LATE,LATO,LAU,LAUDE,LAUER,LAURE,LAV,LAVE,LAVET,LAVIS,LAX,LAXE,LAZ,LAZER,LAZO,LEBEN,LED,LEE,LEG,LEGE,LEGER,LEGIS,LEI,LEIS,LEMON,LENT,LENTS,LEPRE,LER,LESSE,LEST,LESTE,LET,LEU,LEUS,LEV,LEVE,LEX,LEZ,LIANE,LIB,LIBRE,LIC,LICE,LICOU,LID,LIDO,LIE,LIEGE,LIER,LIES,LIG,LILAS,LIM,LIMA,LIMB,LIME,LIMON,LIN,LINGE,LINO,LINS,LIONS,LIORE,LIP,LIR,LIRE,LIS,LIT,LITS,LIX,LOB,LOBE,LOBS,LOC,LOCAL,LOCHE,LOD,LODGE,LODI,LOFER,LOG,LOGE,LOGER,LOGO,LOI,LOIN,LOIS,LOM,LONG,LOP,LOPER,LOR,LORE,LORS,LOT,LOTS,LOUE,LOUF,LOUVE,LOV,LOVER,LOX,LOY,LOYAL,LUB,LUD,LUG,LUGE,LUI,LUIRE,LUM,LUMET,LUN,LUNA,LUNE,LUNET,LUP,LUPIN,LUR,LURE,LUS,LUSUS,LUT,LUTIN,LUX,LYDON,LYRE,LYS,MABUL,MAC,MACE,MACIS,MACON,MACRO,MACS,MAD,MADOU,MAF,MAGE,MAGOT,MAH,MAHO,MAHOU,MAI,MAK,MAKA,MAKER,MAL,MALAR,MALE,MAM,MAMBO,MAME,MAN,MANE,MANO,MANU,MAOUS,MAP,MAPPE,MAQUI,MAR,MARC,MARE,MAREE,MARIL,MARM,MARS,MAS,MASE,MASON,MAST,MAT,MATAN,MATE,MATER,MATS,MATU,MAU,MAUVE,MAUX,MAV,MAX,MAXI,MAY,MAZ,MEB,MEC,MECHE,MED,MEDE,MEF,MEFIT,MEGOT,MEI,MEK,MEL,MELE,MELEE,MELIN,MELO,MELON,MEM,MEN,MENAT,MENOR,MENSE,MEP,MEQUE,MER,MERE,MERLU,MERS,MES,MESA,MESNE,MESSE,MET,METAL,METIS,MEV,MEX,MEY,MIAM,MIC,MICRO,MID,MIDI,MIE,MIEL,MIF,MIG,MIL,MILLE,MILS,MIM,MIME,MIMOT,MIN,MINE,MIP,MIR,MIRE,MISS,MITE,MIXER,MOB,MOC,MOD,MODE,MODEL,MOF,MOG,MOI,MOINS,MOK,MOL,MOLAR,MOLE,MOLLE,MOM,MON,MONET,MONO,MOP,MOPE,MOQ,MORE,MORIN,MORSE,MORT,MORTS,MORUE,MOSER,MOT,MOTE,MOTS,MOU,MOUE,MOUF,MOULE,MOUS,MOUST,MOUT,MOV,MOX,MOY,MOZ,MUE,MUET,MUG,MULE,MULET,MUM,MUN,MUNO,MUR,MURS,MUS,MUST,MUT,MYHE,MYOME,MYOPE,MYOSE,MYTHE,NAB,NABOT,NACRE,NAD,NADA,NADIR,NAG,NAGER,NAIF,NAIPU,NAM,NANAN,NAP,NARC,NARD,NARE,NASE,NASSE,NATAL,NATEL,NATI,NATTE,NAVE,NAVEL,NAVET,NAZE,NEB,NEE,NEF,NEFS,NEI,NEIGE,NEK,NEL,NEM,NEOLI,NEP,NER,NERD,NERF,NES,NETS,NEU,NEV,NEVE,NEVEU,NEX,NEZ,NGOME,NIB,NIC,NICE,NICET,NICHE,NID,NIDS,NIE,NIECE,NIG,NIK,NIL,NIM,NIP,NIR,NIS,NITRE,NIX,NIXOT,NOB,NOBS,NOCIF,NOD,NODE,NODS,NOEL,NOEU,NOEUD,NOG,NOIE,NOIR,NOIX,NOM,NOME,NOMS,NON,NONET,NOO,NOR,NORCE,NORD,NORET,NORM,NOS,NOTE,NOTER,NOU,NOUE,NOUS,NOV,NOVAL,NOX,NOY,NOYAU,NUAGE,NUB,NUBUC,NUD,NUDE,NUDGE,NUEE,NUER,NUG,NUGAT,NUIRE,NUIT,NUITS,NUK,NULS,NUM,NUN,NUS,NUT,OBEIR,OBESE,OBIER,OBOE,OCEAN,OCRE,ODE,ODEE,ODES,ODEUR,OFE,OFFRE,OGA,OGIVE,OGO,OIA,OIE,OIES,OKA,OKO,OLA,OLE,OLO,OMA,OMBLE,OMO,ONA,ONDE,ONE,ONGLE,ONT,OPALE,OPE,OPUS,ORA,ORAGE,ORAL,ORB,ORBE,ORBER,ORDRE,ORE,ORES,ORGE,ORGUE,ORIER,ORLE,ORME,ORNER,ORNI,ORO,OSE,OSEE,OSIE,OSIER,OSO,OSSO,OTAGE,OTIE,OTITE,OUA,OUBLI,OUE,OUED,OUI,OUL,OULD,OULE,OUM,OUN,OUP,OURS,OUS,OUST,OUTIL,OUTL,OVA,OVAL,OXER,OXO,OZONE,PACE,PACK,PACS,PACTE,PAD,PAF,PAGER,PAGNE,PAGO,PAH,PAIEN,PAIRE,PAK,PAL,PALA,PALE,PALI,PALME,PALP,PALS,PAM,PAMIR,PANEL,PANG,PANI,PANS,PAP,PAPA,PAPEL,PAPOT,PAPOU,PAR,PARA,PARCE,PARER,PAROI,PARR,PARS,PAS,PASSE,PAST,PAT,PATE,PATER,PATIN,PATU,PAU,PAV,PAVE,PAVER,PAW,PAX,PAY,PEAGE,PEAN,PEAU,PEC,PECOT,PED,PEF,PEI,PEK,PEL,PELE,PEM,PEN,PENA,PENDU,PEP,PER,PERC,PERCE,PERD,PERDU,PERI,PERIL,PERL,PERLE,PERO,PERON,PERSI,PES,PET,PETER,PETON,PETS,PEU,PEV,PEW,PIB,PIC,PID,PIE,PIED,PIEU,PIG,PIGE,PIK,PILE,PILER,PILET,PIM,PIN,PINOT,PION,PIONS,PIP,PIPEE,PIR,PIRE,PIS,PITA,PITON,PIX,PIXIE,PLACE,PLAGE,PLAID,PLAME,PLANE,PLANS,PLATS,PLEIN,PLEUR,PLI,PLIE,PLIER,PLINT,PLIS,PLOC,PLOF,PLOMB,PLOP,PLORE,PLOT,PLUME,PNEU,POAGE,POB,POC,POCHE,POD,POEME,POF,POG,POIL,POILE,POILU,POIS,POK,POLE,POLIR,POM,POMPE,PON,PONCE,POP,POPE,POR,PORE,PORTE,POS,POSE,POSTE,POT,POTEE,POU,POUF,POUR,POV,POW,POX,POY,PRE,PREX,PRIS,PRIX,PRO,PROB,PROD,PROM,PROP,PROS,PROSE,PROT,PROX,PTIT,PUB,PUBS,PUCE,PUD,PUE,PUG,PUITS,PULP,PULPE,PUM,PUN,PUP,PUR,PURE,PURGE,PURS,PUS,PUT,PUYA,QUE,QUI,RAB,RABAT,RACE,RACEE,RACER,RACIN,RACLE,RAD,RADER,RADIR,RADIS,RADS,RAE,RAF,RAG,RAGA,RAGE,RAGOT,RAGRE,RAGU,RAH,RAHAT,RAI,RAID,RAIDE,RAIGU,RAIL,RAILE,RAION,RAIS,RAK,RAM,RAME,RAMED,RAMEN,RAMPE,RAN,RAND,RANEE,RANET,RAO,RAP,RAPE,RAPEE,RAPS,RAR,RARE,RAS,RASE,RASER,RAT,RATON,RATS,RAU,RAV,RAVE,RAVER,RAVIR,RAW,RAX,RAY,RAZ,RAZE,REB,REBAT,RECAL,RECAT,RECEL,RECRU,RECS,RECTO,RECUL,RED,REE,REEL,REF,REG,REGAL,REGLE,REH,REI,REIN,REK,RELE,RELET,RELIE,RELIT,RELY,REM,REP,REPAS,REPIC,REPLI,REPOS,REPUT,RER,RES,RESEC,RESET,RESOL,RETE,RETUE,REUNI,REUSE,REV,REVE,REVUE,REW,REX,REY,REZ,RIA,RIB,RIC,RID,RIDE,RIDER,RIE,RIEL,RIF,RIFON,RIG,RIGLE,RIK,RILL,RIM,RIME,RIMEN,RIO,RIODE,RIP,RIPOS,RIR,RIRE,RIS,RIT,RIVE,RIVER,RIVET,RIZ,ROB,ROBIN,ROBUR,ROC,ROD,RODE,RODER,RODET,ROF,ROG,ROGUE,ROI,ROIS,ROK,ROLE,ROM,RON,RONDE,RONDS,RONGE,ROP,ROQUE,ROS,ROT,ROTIN,ROTS,ROUE,ROUGE,ROULE,ROUMI,ROUX,ROV,ROW,ROX,ROY,ROZ,RUB,RUBAN,RUBIE,RUCHE,RUD,RUE,RUES,RUG,RUIN,RUINE,RUK,RUM,RUP,RUS,RUSE,RUSÉ,RUT,RUX,SABER,SABOT,SAC,SACRE,SACS,SAFE,SAFRE,SAGA,SAGE,SAH,SAIE,SAK,SAL,SALE,SALIN,SALS,SAM,SAMAR,SANER,SANG,SANOT,SANS,SAP,SAPE,SARCE,SARD,SARDE,SARE,SAREE,SAREX,SARI,SAS,SAT,SATAY,SATIN,SATON,SAU,SAUCE,SAUF,SAULE,SAUNA,SAUTE,SAV,SAVE,SAVEL,SAVIN,SAW,SAX,SAXE,SAXI,SAY,SAZ,SCAN,SCION,SCORE,SEB,SEC,SECS,SED,SEDGE,SEE,SEF,SEG,SEH,SEI,SEIN,SEINE,SEK,SEL,SELON,SELS,SEM,SEN,SENAT,SENE,SENS,SEP,SEPE,SER,SERAC,SERGE,SERIN,SERS,SERVE,SET,SETS,SEULS,SEV,SEVE,SEW,SEX,SEXY,SEY,SIB,SIC,SID,SIE,SIEGE,SIG,SIL,SILEX,SILO,SIM,SINE,SIP,SIR,SIROP,SIS,SITE,SITUE,SIV,SIX,SKI,SLAM,SLIP,SNIPE,SOB,SOBRE,SOC,SOD,SODA,SOEUR,SOG,SOI,SOIF,SOIS,SOK,SOL,SOLE,SOLS,SOM,SOMA,SOME,SOMME,SON,SONAR,SONDE,SONIC,SONS,SOP,SOR,SORBE,SORBI,SORET,SORT,SOT,SOTS,SOU,SOUDE,SOUE,SOUK,SOUL,SOUN,SOUPE,SOUS,SOV,SOW,SOX,SOY,SOZ,SPARE,SPIN,SPIRE,SPORE,SPOT,STADE,STEM,STERE,STOAT,STOP,STOPE,STORE,STRIE,STUBE,STYLE,SUANT,SUB,SUBIR,SUC,SUCRE,SUD,SUER,SUIS,SUITE,SUJET,SUM,SUN,SUP,SUPER,SUR,SURB,SURE,SURF,SUS,SUT,SYN,TAB,TABAC,TABAR,TABIN,TABLE,TABOR,TAC,TACE,TACER,TACET,TACHE,TACI,TAD,TAE,TAF,TAG,TAH,TAIBU,TAIER,TAIS,TAK,TAL,TALE,TALMU,TALON,TAM,TAN,TANGO,TANS,TAO,TAONS,TAP,TAPIR,TAPIS,TAPS,TAQ,TAR,TARDE,TARE,TARET,TARIF,TARIN,TARPE,TARS,TARSE,TAS,TASTE,TAT,TATON,TAU,TAUPE,TAURE,TAUS,TAV,TAW,TAX,TAXI,TAY,TAYRA,TAZ,TEB,TEBET,TECK,TED,TEEN,TEF,TEG,TEH,TEI,TEINT,TEK,TEL,TELE,TELEM,TELEX,TELS,TEM,TEME,TEMOR,TEMPE,TEN,TENAR,TENU,TENUE,TEP,TER,TERCE,TERME,TERNE,TERON,TES,TET,TETE,TEV,TEW,TEX,TEY,THE,THESE,TIB,TIBER,TIBIA,TIC,TICER,TICON,TICS,TID,TIERS,TIF,TIFO,TIG,TIGRE,TILE,TILL,TILT,TIM,TIMON,TINS,TIP,TIR,TIRET,TIRON,TIRS,TITRE,TIV,TOC,TOCS,TOD,TOF,TOG,TOGRE,TOI,TOILE,TOISE,TOIT,TOITS,TOK,TOLD,TOLET,TOLL,TOM,TOMBE,TOME,TON,TONAL,TONDO,TONG,TONNE,TONS,TOO,TOP,TOPER,TOPO,TOPS,TOQUE,TOR,TORCE,TORDU,TORE,TORET,TORR,TORS,TORTE,TOT,TOTAL,TOTE,TOTEM,TOTS,TOTU,TOU,TOUE,TOUER,TOUET,TOUR,TOUX,TOV,TOW,TOX,TOY,TOZ,TRAC,TRACE,TRAME,TRAP,TRAPU,TRAVE,TREF,TREIS,TRELE,TREMA,TREMP,TRES,TREVE,TRIAS,TRIBU,TRIER,TRIFE,TRIO,TRIPE,TRONC,TROP,TROPE,TROT,TROUE,TROUS,TRUCS,TRUE,TRUIE,TRUST,TSAR,TUB,TUBE,TUBER,TUBS,TUD,TUE,TUEE,TUF,TUG,TUILE,TUK,TUM,TUMOR,TUNER,TUP,TUR,TURC,TURNE,TUS,TUT,TUYAU,TYPE,TYPER,TYPES,ULEE,ULNAR,ULTRA,ULVE,UNA,UNE,UNI,UNION,UNO,URB,URBAN,UREE,URI,URN,URNE,USANT,USE,USUEL,USURE,UTE,VAC,VAD,VAE,VAF,VAG,VAGI,VAH,VAIN,VAK,VAL,VALE,VALSE,VALVE,VAM,VAN,VANER,VANS,VANTE,VAP,VAR,VAREC,VASE,VASTE,VAT,VAU,VAV,VAW,VAX,VAY,VEAU,VEB,VED,VEF,VEI,VEK,VEM,VEN,VEP,VERRE,VERS,VES,VET,VETO,VEV,VEX,VEY,VIA,VIB,VICAR,VID,VIDE,VIDEO,VIE,VIEUX,VIF,VIG,VIGIL,VIGNE,VIL,VIM,VIN,VINS,VIOL,VIOLA,VIP,VIRE,VIRTU,VIRUS,VIS,VISA,VISER,VISON,VIT,VITRE,VIV,VIVAT,VIVE,VIVRE,VOB,VOCAL,VOD,VODE,VOE,VOEU,VOG,VOGUE,VOI,VOICI,VOILA,VOILE,VOIR,VOK,VOL,VOLAT,VOLE,VOLET,VOLGE,VOLS,VOLTE,VOM,VON,VOP,VOR,VOS,VOT,VOTE,VOTER,VOU,VOUE,VOUER,VOW,VOX,VOY,VOZ,VRAIS,VUE,VULVE,WOB,WOD,WOE,WOF,WOG,WOI,WOK,WOM,WON,WOP,WOR,WOS,WOT,WOU,WOV,WOX,WOY,WOZ,XENO,XENON,YAB,YAC,YACHT,YAD,YAF,YAG,YAH,YAI,YAK,YAL,YAM,YAO,YAP,YAR,YAS,YAT,YAU,YAV,YAW,YAX,YAY,YEB,YED,YEL,YEM,YEN,YEP,YER,YES,YET,YEW,YIB,YID,YIE,YIF,YIG,YIK,YIM,YIN,YIP,YIS,YIT,YOB,YOD,YOG,YOGI,YOLE,YOM,YON,YOP,YOR,YOS,YOT,YOU,YOV,YOW,YOX,YOY,YUCCA,ZAC,ZAD,ZAF,ZAG,ZAH,ZAI,ZAK,ZAL,ZAM,ZAO,ZAP,ZAR,ZAS,ZAT,ZAU,ZAV,ZAX,ZAY,ZAZ,ZEB,ZEBRE,ZED,ZEF,ZEL,ZEM,ZEN,ZEP,ZER,ZES,ZESTE,ZEV,ZEW,ZEX,ZEY,ZIB,ZID,ZIE,ZIF,ZIG,ZIK,ZIL,ZIM,ZIN,ZIP,ZIR,ZIS,ZIT,ZOB,ZOD,ZOE,ZOG,ZOI,ZOK,ZOM,ZON,ZONE,ZOO,ZOOM,ZOOME,ZOP,ZOR,ZOS,ZOT,ZOU,ZOV,ZOW,ZOX,ZOY,ZUT";
+
+const DICO = new Set(MOTS_STR.split(',').map(m => m.trim()).filter(m => m.length >= 3 && m.length <= 5));
+
+// ════════════════════════════════════════════════════
+//  DÉS BOGGLE (faces standard)
+// ════════════════════════════════════════════════════
+const DICE = [
+    'ETUKNO','EVGTIN','DECAMP','IELRUW',
+    'EHIFSE','RECALS','ENTDOS','OFXRIA',
+    'NAVDZE','EIOATA','GLENYU','BMAQJO',
+    'TLIBRA','SPULTE','AIMSOR','ENHRIS'
+];
+
+// ════════════════════════════════════════════════════
+//  ÉTAT DU JEU
+// ════════════════════════════════════════════════════
+let grid = [], selectedPath = [], foundWords = [], score = 0;
+let timeLeft = 180, timerInterval = null, isGameActive = false;
+
+// ── AUDIO ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, type, duration) {
+    if (!document.getElementById('soundToggle').checked) return;
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+}
+function vibrate(p) {
+    if (!document.getElementById('vibToggle').checked || !navigator.vibrate) return;
+    navigator.vibrate(p);
+}
+
+// ── THÈME ──
+let themeState = 'auto'; // auto | light | dark
+function cycleTheme() {
+    const next = { auto: 'light', light: 'dark', dark: 'auto' };
+    themeState = next[themeState];
+    const icons = { auto: '🌓', light: '☀️', dark: '🌙' };
+    document.getElementById('themeBtn').textContent = icons[themeState];
+    if (themeState === 'auto') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', themeState);
+    }
+}
+function toggleSettings() {
+    document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+// ── UTILITAIRES ──
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+function isAdjacent(a, b) {
+    const ra = Math.floor(a / 4), ca = a % 4;
+    const rb = Math.floor(b / 4), cb = b % 4;
+    return Math.abs(ra - rb) <= 1 && Math.abs(ca - cb) <= 1;
+}
+function calcScore(len) {
+    if (len <= 4) return 1;
+    if (len === 5) return 2;
+    return 0;
+}
+
+// ── FLASH MESSAGE ──
+let flashTimer;
+function flash(msg, color) {
+    const el = document.getElementById('flashMsg');
+    el.textContent = msg;
+    el.style.color = color || 'var(--text)';
+    el.classList.add('show');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => el.classList.remove('show'), 700);
+}
+
+// ── INIT PARTIE ──
+function initGame() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    clearInterval(timerInterval);
+    grid = []; selectedPath = []; foundWords = []; score = 0; timeLeft = 180;
+    isGameActive = true;
+
+    document.getElementById('scoreValue').textContent = '0';
+    document.getElementById('wordCount').textContent = '0';
+    document.getElementById('timerValue').textContent = '3:00';
+    document.getElementById('timerValue').classList.remove('warn');
+    document.getElementById('foundList').innerHTML = '';
+    document.getElementById('foundLabel').textContent = 'Mots trouvés';
+    document.getElementById('currentWord').textContent = '';
+
+    const shuffled = shuffle([...DICE]);
+    const g = document.getElementById('grid');
+    g.innerHTML = '';
+
+    for (let i = 0; i < 16; i++) {
+        const die = shuffled[i];
+        const letter = die[Math.floor(Math.random() * die.length)];
+        grid.push(letter);
+
+        const div = document.createElement('div');
+        div.className = 'dice';
+        div.textContent = letter === 'Q' ? 'Qu' : letter;
+        div.dataset.index = i;
+        g.appendChild(div);
+    }
+
+    timerInterval = setInterval(countdown, 1000);
+    playTone(440, 'sine', 0.15);
+}
+
+// ── SÉLECTION (CLIC + GLISSEMENT) ──
+function getIndexFromPoint(x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (el && el.classList.contains('dice')) return parseInt(el.dataset.index);
+    return -1;
+}
+
+function selectTile(index) {
+    if (index < 0 || index >= 16) return;
+    const dices = document.querySelectorAll('.dice');
+
+    // Dé-sélection du dernier si on revient dessus
+    if (selectedPath.length > 0 && selectedPath[selectedPath.length - 1] === index) {
+        selectedPath.pop();
+        dices[index].classList.remove('selected');
+        dices[index].removeAttribute('data-order');
+        updateWord();
+        playTone(300, 'triangle', 0.08);
+        return;
+    }
+
+    // Rejet si déjà dans le chemin ou non adjacent
+    if (selectedPath.includes(index)) return;
+    if (selectedPath.length > 0 && !isAdjacent(selectedPath[selectedPath.length - 1], index)) {
+        vibrate([40, 30]);
+        return;
+    }
+
+    selectedPath.push(index);
+    dices[index].classList.add('selected');
+    dices[index].dataset.order = selectedPath.length;
+    updateWord();
+    playTone(550 + selectedPath.length * 40, 'sine', 0.07);
+    vibrate(12);
+}
+
+let isDragging = false;
+let lastDragIndex = -1;
+
+// Touch events sur le grid
+const gridEl = document.getElementById('grid');
+gridEl.addEventListener('touchstart', (e) => {
+    if (!isGameActive) return;
+    initAudio();
+    e.preventDefault();
+    isDragging = true;
+    const touch = e.touches[0];
+    const idx = getIndexFromPoint(touch.clientX, touch.clientY);
+    lastDragIndex = idx;
+    if (idx >= 0) selectTile(idx);
+}, { passive: false });
+
+gridEl.addEventListener('touchmove', (e) => {
+    if (!isGameActive || !isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const idx = getIndexFromPoint(touch.clientX, touch.clientY);
+    if (idx >= 0 && idx !== lastDragIndex) {
+        lastDragIndex = idx;
+        selectTile(idx);
+    }
+}, { passive: false });
+
+gridEl.addEventListener('touchend', (e) => {
+    isDragging = false;
+    lastDragIndex = -1;
+}, { passive: true });
+
+// Clic souris (bureau)
+gridEl.addEventListener('click', (e) => {
+    if (!isGameActive) return;
+    initAudio();
+    const dice = e.target.closest('.dice');
+    if (!dice) return;
+    selectTile(parseInt(dice.dataset.index));
+});
+
+function updateWord() {
+    const word = selectedPath.map(i => grid[i] === 'Q' ? 'QU' : grid[i]).join('');
+    document.getElementById('currentWord').textContent = word;
+}
+
+function clearSelection() {
+    selectedPath = [];
+    document.querySelectorAll('.dice').forEach(d => {
+        d.classList.remove('selected');
+        d.removeAttribute('data-order');
+    });
+    updateWord();
+    playTone(280, 'triangle', 0.1);
+}
+
+function submitWord() {
+    if (!isGameActive) return;
+    const word = selectedPath.map(i => grid[i] === 'Q' ? 'QU' : grid[i]).join('');
+
+    if (word.length < 3) {
+        flash('Trop court !', 'var(--danger)');
+        vibrate([50, 30, 50]);
+        clearSelection(); return;
+    }
+    if (word.length > 5) {
+        flash('Max 5 lettres', 'var(--danger)');
+        vibrate([50, 30, 50]);
+        clearSelection(); return;
+    }
+    if (foundWords.includes(word)) {
+        flash('Déjà trouvé !', 'var(--text2)');
+        vibrate([30, 20, 30]);
+        clearSelection(); return;
+    }
+    if (!DICO.has(word)) {
+        flash('❌ ' + word, 'var(--danger)');
+        playTone(180, 'sawtooth', 0.2);
+        vibrate([60, 40, 60]);
+        clearSelection(); return;
+    }
+
+    // Mot valide !
+    foundWords.push(word);
+    const pts = calcScore(word.length);
+    score += pts;
+
+    document.getElementById('scoreValue').textContent = score;
+    document.getElementById('wordCount').textContent = foundWords.length;
+    document.getElementById('foundLabel').textContent = `Mots trouvés (${foundWords.length})`;
+
+    const li = document.createElement('li');
+    li.textContent = `${word} +${pts}`;
+    if (word.length === 5) li.classList.add('len5');
+    document.getElementById('foundList').prepend(li);
+
+    flash('✔ ' + word + ' +' + pts, 'var(--success)');
+    playTone(780, 'square', 0.08);
+    setTimeout(() => playTone(1100, 'square', 0.12), 90);
+    vibrate([20, 40, 20]);
+    clearSelection();
+}
+
+// ── MINUTERIE ──
+function countdown() {
+    timeLeft--;
+    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    const s = (timeLeft % 60).toString().padStart(2, '0');
+    const tv = document.getElementById('timerValue');
+    tv.textContent = `${m}:${s}`;
+    if (timeLeft <= 10) {
+        tv.classList.add('warn');
+        playTone(1200, 'sine', 0.07);
+    }
+    if (timeLeft <= 0) endGame();
+}
+
+function endGame() {
+    clearInterval(timerInterval);
+    isGameActive = false;
+    clearSelection();
+    document.getElementById('timerValue').textContent = '0:00';
+
+    const emoji = score >= 10 ? '🏆' : score >= 5 ? '🎯' : score >= 2 ? '🙂' : '😅';
+    document.getElementById('modalEmoji').textContent = emoji;
+    document.getElementById('modalScore').textContent = `${score} point${score > 1 ? 's' : ''}`;
+    document.getElementById('modalStats').innerHTML =
+        `${foundWords.length} mot${foundWords.length > 1 ? 's' : ''} trouvé${foundWords.length > 1 ? 's' : ''}<br>` +
+        (foundWords.length > 0 ? `Meilleur : ${[...foundWords].sort((a,b) => b.length - a.length)[0]}` : '');
+
+    document.getElementById('modalOverlay').classList.add('show');
+    playTone(380, 'sawtooth', 0.4);
+    setTimeout(() => playTone(290, 'sawtooth', 0.6), 450);
+    vibrate([80, 40, 80, 40, 160]);
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// ── DÉMARRAGE ──
+window.addEventListener('load', initGame);
+</script>
+</body>
+</html>
