@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Le Pendu</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f0ede8;
+    --bg2: #e4dfd8;
+    --surface: #ffffff;
+    --surface2: #f7f4f0;
+    --border: rgba(0,0,0,0.1);
+    --text: #1a1714;
+    --text2: #6b6560;
+    --accent: #d4522a;
+    --accent2: #e8765a;
+    --success: #2a9d5c;
+    --letter-bg: #ffffff;
+    --letter-border: rgba(0,0,0,0.15);
+    --letter-text: #1a1714;
+    --letter-used: #c8c3bc;
+    --letter-used-text: #a09890;
+    --letter-wrong: #d4522a;
+    --key-shadow: 0 3px 0 rgba(0,0,0,0.15);
+    --gallows: #3d3530;
+    --transition: 0.25s cubic-bezier(.4,0,.2,1);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  [data-theme="dark"] {
+    --bg: #131110;
+    --bg2: #1c1916;
+    --surface: #232019;
+    --surface2: #2d2a24;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0ede8;
+    --text2: #8c8680;
+    --accent: #e8765a;
+    --accent2: #f09070;
+    --success: #3dbf72;
+    --letter-bg: #2d2a24;
+    --letter-border: rgba(255,255,255,0.12);
+    --letter-text: #f0ede8;
+    --letter-used: #1c1916;
+    --letter-used-text: #4a4540;
+    --letter-wrong: #c04030;
+    --key-shadow: 0 3px 0 rgba(0,0,0,0.5);
+    --gallows: #c8b8a8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background var(--transition), color var(--transition);
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    width: 100%;
+    max-width: 540px;
+    padding: 14px 20px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+  }
+
+  .logo {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .logo-dot { color: var(--accent); }
+
+  .header-controls { display: flex; gap: 8px; }
+
+  .icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all var(--transition);
+    box-shadow: var(--key-shadow);
+  }
+  .icon-btn:active { transform: translateY(2px); box-shadow: none; }
+
+  /* ── MAIN ── */
+  main {
+    width: 100%;
+    max-width: 540px;
+    padding: 0 16px 120px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── SCORE CHIPS ── */
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .stat-chip {
+    flex: 1;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 8px;
+    text-align: center;
+    box-shadow: var(--key-shadow);
+  }
+  .stat-val {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+  .stat-chip.accent .stat-val { color: var(--accent); }
+  .stat-chip.success .stat-val { color: var(--success); }
+
+  /* ── CATEGORY ── */
+  .category-bar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .category-bar::-webkit-scrollbar { display: none; }
+
+  .cat-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+  .cat-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .cat-btn:active { transform: scale(0.96); }
+
+  /* ── GALLOWS AREA ── */
+  .gallows-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--key-shadow);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gallows-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 20px,
+      var(--bg2) 20px,
+      var(--bg2) 21px
+    );
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  #gallowsSVG {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .lives-dots {
+    display: flex;
+    gap: 6px;
+    z-index: 1;
+  }
+  .life-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--success);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .life-dot.lost {
+    background: var(--accent);
+    transform: scale(0.7);
+  }
+
+  /* ── HINT / MESSAGE ── */
+  .hint-bar {
+    font-size: 0.78rem;
+    color: var(--text2);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+    min-height: 1.2em;
+    transition: color 0.3s;
+  }
+  .hint-bar.wrong { color: var(--accent); }
+  .hint-bar.correct { color: var(--success); }
+
+  /* ── WORD DISPLAY ── */
+  .word-display {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 0;
+    min-height: 60px;
+    align-items: flex-end;
+  }
+
+  .letter-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .letter-char {
+    width: 30px;
+    height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    transition: all 0.3s;
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  .letter-char.revealed {
+    animation: popIn 0.35s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .letter-char.wrong-reveal {
+    color: var(--accent);
+    animation: shake 0.4s ease forwards;
+  }
+
+  .letter-line {
+    width: 30px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--text2);
+    transition: background 0.3s;
+  }
+  .letter-slot.active .letter-line { background: var(--accent); }
+  .letter-slot.space { width: 12px; }
+  .letter-slot.space .letter-line { background: transparent; }
+
+  /* ── KEYBOARD ── */
+  .keyboard {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1.5px solid var(--border);
+    padding: 10px 8px 16px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    backdrop-filter: blur(12px);
+  }
+
+  .key-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .key {
+    height: 42px;
+    min-width: 28px;
+    flex: 1;
+    max-width: 40px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--letter-border);
+    background: var(--letter-bg);
+    color: var(--letter-text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--key-shadow);
+    transition: all 0.15s;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .key:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+  .key.used-wrong {
+    background: var(--letter-wrong);
+    border-color: var(--letter-wrong);
+    color: #fff;
+    opacity: 0.7;
+    cursor: default;
+  }
+  .key.used-ok {
+    background: var(--letter-used);
+    border-color: var(--letter-used);
+    color: var(--letter-used-text);
+    cursor: default;
+    box-shadow: none;
+  }
+  .key:disabled { pointer-events: none; }
+
+  /* ── OVERLAY WIN/LOSE ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+
+  .overlay-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    max-width: 320px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+    transform: scale(0.85);
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .overlay.show .overlay-card { transform: scale(1); }
+
+  .overlay-emoji { font-size: 3.5rem; line-height: 1; margin-bottom: 12px; }
+  .overlay-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+  .overlay-word {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--surface2);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    margin: 12px 0;
+    display: inline-block;
+  }
+  .overlay-sub { font-size: 0.85rem; color: var(--text2); margin-bottom: 20px; }
+
+  .btn-play {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    letter-spacing: 0.02em;
+  }
+  .btn-play:active { transform: translateY(3px); box-shadow: none; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes popIn {
+    0%  { transform: translateY(8px) scale(0.8); opacity: 0; }
+    100%{ transform: translateY(0) scale(1); opacity: 1; }
+  }
+  @keyframes shake {
+    0%,100%{ transform: translateX(0); }
+    20%{ transform: translateX(-4px); }
+    40%{ transform: translateX(4px); }
+    60%{ transform: translateX(-3px); }
+    80%{ transform: translateX(3px); }
+  }
+  @keyframes pulse {
+    0%,100%{ transform: scale(1); }
+    50%{ transform: scale(1.08); }
+  }
+
+  /* Parts SVG hidden by default */
+  .part { opacity: 0; transition: opacity 0.4s; }
+  .part.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LE PENDU<span class="logo-dot">.</span></div>
+  <div class="header-controls">
+    <button class="icon-btn" id="themeBtn" title="Thème" aria-label="Changer de thème">☀️</button>
+    <button class="icon-btn" id="newBtn" title="Nouvelle partie" aria-label="Nouvelle partie">↺</button>
+  </div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-chip success">
+      <div class="stat-val" id="scoreWin">0</div>
+      <div class="stat-label">Victoires</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-val" id="scoreDef">0</div>
+      <div class="stat-label">Défaites</div>
+    </div>
+    <div class="stat-chip accent">
+      <div class="stat-val" id="errorsLeft">7</div>
+      <div class="stat-label">Essais restants</div>
+    </div>
+  </div>
+
+  <!-- Catégories -->
+  <div class="category-bar" id="categoryBar"></div>
+
+  <!-- Potence -->
+  <div class="gallows-card">
+    <svg id="gallowsSVG" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- Structure -->
+      <line x1="10" y1="175" x2="190" y2="175" stroke="var(--gallows)" stroke-width="4" stroke-linecap="round"/>
+      <line x1="40" y1="175" x2="40" y2="10"  stroke="var(--gallows)" stroke-width="4" stroke-linecap="round"/>
+      <line x1="40" y1="10"  x2="130" y2="10"  stroke="var(--gallows)" stroke-width="4" stroke-linecap="round"/>
+      <line x1="130" y1="10" x2="130" y2="35"  stroke="var(--gallows)" stroke-width="4" stroke-linecap="round"/>
+      <!-- Parties du bonhomme -->
+      <!-- Tête -->
+      <circle class="part" id="p0" cx="130" cy="50" r="14" stroke="var(--accent)" stroke-width="3" fill="none"/>
+      <!-- Corps -->
+      <line  class="part" id="p1" x1="130" y1="64" x2="130" y2="115" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <!-- Bras gauche -->
+      <line  class="part" id="p2" x1="130" y1="75" x2="105" y2="98" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <!-- Bras droit -->
+      <line  class="part" id="p3" x1="130" y1="75" x2="155" y2="98" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <!-- Jambe gauche -->
+      <line  class="part" id="p4" x1="130" y1="115" x2="108" y2="145" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <!-- Jambe droite -->
+      <line  class="part" id="p5" x1="130" y1="115" x2="152" y2="145" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <!-- Yeux X (défaite) -->
+      <g class="part" id="p6">
+        <line x1="124" y1="44" x2="128" y2="48" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="128" y1="44" x2="124" y2="48" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="132" y1="44" x2="136" y2="48" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="136" y1="44" x2="132" y2="48" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M124,55 Q130,51 136,55" stroke="var(--accent)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <div class="lives-dots" id="livesDots"></div>
+  </div>
+
+  <!-- Message / indice -->
+  <div class="hint-bar" id="hintBar">Choisissez une catégorie et devinez le mot !</div>
+
+  <!-- Mot -->
+  <div class="word-display" id="wordDisplay"></div>
+</main>
+
+<!-- Clavier fixe en bas -->
+<div class="keyboard" id="keyboard"></div>
+
+<!-- Overlay fin de partie -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="overlay-emoji" id="ovEmoji">🎉</div>
+    <div class="overlay-title" id="ovTitle">Bravo !</div>
+    <div class="overlay-word" id="ovWord">MOT</div>
+    <div class="overlay-sub" id="ovSub">Tu as trouvé le mot !</div>
+    <button class="btn-play" id="ovBtn">Rejouer →</button>
+  </div>
+</div>
+
+<script>
+/* ─── DICTIONNAIRE ─── */
+const CATEGORIES = {
+  "🦁 Animaux": [
+    "CHAT","CHIEN","LAPIN","AIGLE","TIGRE","LOUP","BALEINE","DAUPHIN","ELEPHANT","GIRAFE",
+    "PANTHÈRE","RENARD","HIBOU","CORBEAU","TORTUE","CROCODILE","FLAMANT","KANGOUROU",
+    "KOALA","MANCHOT","ORQUE","PINGOUIN","REQUIN","SAUMON","MOUTON","VACHE","CHEVAL",
+    "COCHON","POULE","CANARD"
+  ],
+  "🏙️ Villes": [
+    "PARIS","LYON","MARSEILLE","TOULOUSE","BORDEAUX","NANTES","STRASBOURG","LILLE",
+    "NICE","RENNES","GRENOBLE","MONTPELLIER","TOULON","METZ","REIMS","DIJON",
+    "ANGERS","CAEN","BREST","ROUEN"
+  ],
+  "🍕 Cuisine": [
+    "QUICHE","CREPE","BAGUETTE","FROMAGE","CASSOULET","RATATOUILLE","BOUILLABAISSE",
+    "CROISSANT","MACARON","ECLAIR","TARTE","SOUFFLÉ","GRATIN","CROQUE","FONDUE",
+    "RACLETTE","BRIOCHE","CANELÉ","MADELINE","CLAFOUTIS"
+  ],
+  "🎬 Cinéma": [
+    "ACTEUR","RÉALISATEUR","SCENARIO","TOURNAGE","MONTAGE","COMÉDIE","THRILLER",
+    "DOCUMENTAIRE","ANIMATION","WESTERN","FLASHBACK","DÉCOR","COSTUME","ALAMBIC",
+    "CASTING","PLATEAU","INTRIGUE","GÉNÉRIQUE","CLAP","SCRIPT"
+  ],
+  "⚽ Sport": [
+    "FOOTBALL","TENNIS","NATATION","CYCLISME","ATHLÉTISME","ESCRIME","HANDBALL","RUGBY",
+    "VOLLEYBALL","JUDO","KARATÉ","BOXE","AVIRON","PLONGEON","ÉQUITATION","GOLF","BASKET",
+    "BADMINTON","SQUASH","TRIATHLON"
+  ],
+  "🔧 Bâtiment": [
+    "FONDATIONS","CHARPENTE","ISOLATION","RAVALEMENT","PLOMBERIE","ÉLECTRICITÉ",
+    "MAÇONNERIE","CARRELAGE","PEINTURE","MENUISERIE","TOITURE","FAÇADE","CLOISON",
+    "ESCALIER","TERRASSE","BALCON","FENÊTRE","PORTE","DALLES","BÉTON"
+  ],
+  "🌍 Nature": [
+    "MONTAGNE","RIVIÈRE","FORÊT","DÉSERT","VOLCAN","GLACIER","PRAIRIE","MARAIS",
+    "FALAISE","GROTTE","TORRENT","LAGUNE","MANGROVE","SAVANE","TOUNDRA","CANYON",
+    "PLATEAU","DELTA","PÉNINSULE","ARCHIPEL"
+  ],
+};
+
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const MAX_ERRORS = 7;
+const PART_IDS = ['p0','p1','p2','p3','p4','p5','p6'];
+
+let currentWord = '';
+let guessed = new Set();
+let errors = 0;
+let wins = 0;
+let defeats = 0;
+let currentCat = Object.keys(CATEGORIES)[0];
+let gameActive = false;
+
+/* ─── THEME ─── */
+const themeBtn = document.getElementById('themeBtn');
+let darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+  themeBtn.textContent = darkMode ? '🌙' : '☀️';
+}
+themeBtn.addEventListener('click', () => { darkMode = !darkMode; applyTheme(); });
+applyTheme();
+
+/* ─── CATEGORIES ─── */
+const catBar = document.getElementById('categoryBar');
+Object.keys(CATEGORIES).forEach(cat => {
+  const btn = document.createElement('button');
+  btn.className = 'cat-btn' + (cat === currentCat ? ' active' : '');
+  btn.textContent = cat;
+  btn.addEventListener('click', () => { currentCat = cat; startGame(); });
+  catBar.appendChild(btn);
+});
+
+function updateCatUI() {
+  catBar.querySelectorAll('.cat-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === currentCat);
+  });
+}
+
+/* ─── KEYBOARD ─── */
+const kbEl = document.getElementById('keyboard');
+const ROWS = ['AZERTYUIOP','QSDFGHJKLM','WXCVBN'];
+
+function buildKeyboard() {
+  kbEl.innerHTML = '';
+  ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'key-row';
+    [...row].forEach(l => {
+      const key = document.createElement('button');
+      key.className = 'key';
+      key.id = 'key_' + l;
+      key.textContent = l;
+      key.addEventListener('click', () => guess(l));
+      rowEl.appendChild(key);
+    });
+    kbEl.appendChild(rowEl);
+  });
+}
+buildKeyboard();
+
+function updateKeyboard() {
+  ALPHA.split('').forEach(l => {
+    const k = document.getElementById('key_' + l);
+    if (!k) return;
+    const inWord = currentWord.replace(/[^A-Z]/g,'').includes(l);
+    if (guessed.has(l)) {
+      k.classList.remove('used-wrong','used-ok');
+      k.classList.add(inWord ? 'used-ok' : 'used-wrong');
+      k.disabled = true;
+    } else {
+      k.classList.remove('used-wrong','used-ok');
+      k.disabled = !gameActive;
+    }
+  });
+}
+
+/* ─── GALLOWS ─── */
+function updateGallows() {
+  PART_IDS.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('show', i < errors);
+  });
+}
+
+/* ─── LIVES DOTS ─── */
+function buildDots() {
+  const d = document.getElementById('livesDots');
+  d.innerHTML = '';
+  for (let i = 0; i < MAX_ERRORS; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'life-dot' + (i < errors ? ' lost' : '');
+    d.appendChild(dot);
+  }
+}
+
+/* ─── WORD DISPLAY ─── */
+function buildWordDisplay() {
+  const wd = document.getElementById('wordDisplay');
+  wd.innerHTML = '';
+  [...currentWord].forEach(ch => {
+    if (ch === ' ') {
+      const slot = document.createElement('div');
+      slot.className = 'letter-slot space';
+      const line = document.createElement('div');
+      line.className = 'letter-line';
+      slot.appendChild(line);
+      wd.appendChild(slot);
+      return;
+    }
+    const norm = normalize(ch);
+    const slot = document.createElement('div');
+    slot.className = 'letter-slot';
+    const charEl = document.createElement('div');
+    charEl.className = 'letter-char';
+    charEl.id = 'slot_' + wd.children.length;
+    if (guessed.has(norm)) {
+      charEl.textContent = ch;
+      charEl.classList.add('revealed');
+    }
+    const line = document.createElement('div');
+    line.className = 'letter-line';
+    slot.appendChild(charEl);
+    slot.appendChild(line);
+    wd.appendChild(slot);
+  });
+}
+
+function revealLetters(letter) {
+  const wd = document.getElementById('wordDisplay');
+  let idx = 0;
+  [...currentWord].forEach((ch, i) => {
+    if (ch === ' ') return;
+    const norm = normalize(ch);
+    const slot = wd.children[idx];
+    idx++;
+    if (norm === letter && slot) {
+      const charEl = slot.querySelector('.letter-char');
+      if (charEl && !charEl.textContent) {
+        charEl.textContent = ch;
+        charEl.style.animationDelay = (idx * 0.04) + 's';
+        charEl.classList.add('revealed');
+      }
+    }
+  });
+}
+
+/* ─── UTILS ─── */
+function normalize(ch) {
+  return ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+}
+
+function wordNormalized() {
+  return [...currentWord].map(ch => ch === ' ' ? ' ' : normalize(ch)).join('');
+}
+
+function isWordFound() {
+  return [...wordNormalized()].filter(c => c !== ' ').every(c => guessed.has(c));
+}
+
+/* ─── GUESS ─── */
+function guess(letter) {
+  if (!gameActive || guessed.has(letter)) return;
+  guessed.add(letter);
+
+  const norm = wordNormalized();
+  if (norm.includes(letter)) {
+    revealLetters(letter);
+    setHint(letter + ' est dans le mot !', 'correct');
+    if (isWordFound()) endGame(true);
+  } else {
+    errors++;
+    updateGallows();
+    buildDots();
+    document.getElementById('errorsLeft').textContent = MAX_ERRORS - errors;
+    setHint(letter + ' — pas dans le mot.', 'wrong');
+    // Petite vibration sur mobile
+    if (navigator.vibrate) navigator.vibrate(60);
+    if (errors >= MAX_ERRORS) endGame(false);
+  }
+  updateKeyboard();
+}
+
+/* ─── HINT BAR ─── */
+function setHint(msg, cls) {
+  const el = document.getElementById('hintBar');
+  el.textContent = msg;
+  el.className = 'hint-bar' + (cls ? ' ' + cls : '');
+}
+
+/* ─── SCORES ─── */
+function updateScores() {
+  document.getElementById('scoreWin').textContent = wins;
+  document.getElementById('scoreDef').textContent = defeats;
+}
+
+/* ─── START GAME ─── */
+function startGame() {
+  updateCatUI();
+  const words = CATEGORIES[currentCat];
+  currentWord = words[Math.floor(Math.random() * words.length)];
+  guessed = new Set();
+  errors = 0;
+  gameActive = true;
+
+  updateGallows();
+  buildDots();
+  buildWordDisplay();
+  updateKeyboard();
+  updateScores();
+  setHint('Catégorie : ' + currentCat);
+  document.getElementById('errorsLeft').textContent = MAX_ERRORS;
+  document.getElementById('overlay').classList.remove('show');
+}
+
+/* ─── END GAME ─── */
+function endGame(won) {
+  gameActive = false;
+  if (won) wins++; else defeats++;
+  updateScores();
+  updateKeyboard();
+
+  // Révéler tout le mot en cas de défaite
+  if (!won) {
+    const wd = document.getElementById('wordDisplay');
+    let idx = 0;
+    [...currentWord].forEach((ch) => {
+      if (ch === ' ') return;
+      const slot = wd.children[idx];
+      idx++;
+      const charEl = slot?.querySelector('.letter-char');
+      if (charEl && !charEl.textContent) {
+        charEl.textContent = ch;
+        charEl.classList.add('wrong-reveal');
+      }
+    });
+  }
+
+  const overlay = document.getElementById('overlay');
+  document.getElementById('ovEmoji').textContent = won ? '🎉' : '💀';
+  document.getElementById('ovTitle').textContent = won ? 'Bravo !' : 'Perdu…';
+  document.getElementById('ovWord').textContent = currentWord;
+  document.getElementById('ovSub').textContent = won
+    ? `Mot trouvé avec ${errors} erreur${errors !== 1 ? 's' : ''} !`
+    : `Le mot était : ${currentWord}`;
+  setTimeout(() => overlay.classList.add('show'), 300);
+}
+
+/* ─── CLAVIER PHYSIQUE ─── */
+document.addEventListener('keydown', e => {
+  const l = normalize(e.key);
+  if (ALPHA.includes(l) && gameActive) guess(l);
+});
+
+document.getElementById('newBtn').addEventListener('click', startGame);
+document.getElementById('ovBtn').addEventListener('click', startGame);
+
+/* ─── INIT ─── */
+startGame();
+</script>
+</body>
+</html>
