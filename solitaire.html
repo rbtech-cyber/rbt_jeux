@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a5f2c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Solitaire</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  height: 100%;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+:root {
+  --bg-1: #0c6b3a;
+  --bg-2: #084a26;
+  --bg-3: #062f17;
+  --header-bg: rgba(0,0,0,0.28);
+  --panel-bg: #f5f3ee;
+  --panel-text: #1f1f1f;
+  --panel-border: rgba(0,0,0,0.08);
+  --card-bg: #fefefa;
+  --card-border: rgba(0,0,0,0.18);
+  --card-back-1: #2d4f8f;
+  --card-back-2: #1a3260;
+  --card-back-line: rgba(255,255,255,0.18);
+  --red: #c8202b;
+  --black: #1a1a1a;
+  --gold: #f3c969;
+  --pile-empty: rgba(0,0,0,0.28);
+  --pile-empty-border: rgba(255,255,255,0.18);
+  --selected: #f3c969;
+  --selected-glow: rgba(243,201,105,0.55);
+  --highlight: rgba(243,201,105,0.25);
+  --hint: #8ce99a;
+  --button-bg: rgba(255,255,255,0.12);
+  --button-bg-hover: rgba(255,255,255,0.22);
+  --button-text: #fff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.25);
+  --shadow-md: 0 3px 8px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.45);
+  --card-w: min(13vw, 78px);
+  --card-h: calc(var(--card-w) * 1.42);
+  --card-r: calc(var(--card-w) * 0.085);
+  --face-offset: calc(var(--card-h) * 0.27);
+  --back-offset: calc(var(--card-h) * 0.13);
+  --gap: calc(var(--card-w) * 0.09);
+}
+
+[data-theme="dark"] {
+  --bg-1: #0a3d22;
+  --bg-2: #04261a;
+  --bg-3: #02160e;
+  --header-bg: rgba(0,0,0,0.45);
+  --panel-bg: #1d2320;
+  --panel-text: #e8e8e8;
+  --panel-border: rgba(255,255,255,0.08);
+  --card-bg: #ece8de;
+  --card-border: rgba(0,0,0,0.4);
+  --card-back-1: #1a3260;
+  --card-back-2: #0d1f3f;
+  --red: #d63944;
+  --pile-empty: rgba(0,0,0,0.45);
+  --pile-empty-border: rgba(255,255,255,0.12);
+  --button-bg: rgba(255,255,255,0.08);
+  --button-bg-hover: rgba(255,255,255,0.18);
+}
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background:
+    radial-gradient(ellipse at 20% 0%, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+  color: var(--button-text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* === Header === */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--header-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.4px;
+}
+.brand .s-r { color: var(--red); }
+.brand .s-b { color: #fff; }
+
+.stats {
+  display: flex;
+  gap: 14px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  opacity: 0.95;
+}
+.stats span { display: inline-flex; align-items: center; gap: 4px; }
+
+.controls {
+  display: flex;
+  gap: 4px;
+}
+
+button {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 7px 10px;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  font-family: inherit;
+  min-height: 34px;
+  min-width: 34px;
+}
+button:hover { background: var(--button-bg-hover); }
+button:active { transform: scale(0.94); }
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+button:disabled:active { transform: none; }
+
+.btn-primary {
+  background: var(--gold);
+  color: #2a1a00;
+  font-weight: 600;
+  border-color: transparent;
+}
+.btn-primary:hover { background: #ffd97a; }
+
+/* === Settings panel === */
+#settings {
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  padding: 12px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 0.9rem;
+}
+#settings.hidden { display: none; }
+#settings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+#settings select {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: white;
+  color: var(--panel-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+[data-theme="dark"] #settings select { background: #2a2f2c; color: var(--panel-text); }
+#settings input[type=checkbox] {
+  width: 16px; height: 16px; cursor: pointer;
+}
+
+/* === Main === */
+main {
+  flex: 1;
+  padding: 12px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--card-h) * 0.18);
+  overflow: hidden;
+}
+
+.top-row {
+  display: grid;
+  grid-template-columns: repeat(7, var(--card-w));
+  gap: var(--gap);
+  justify-content: center;
+}
+
+.tableau {
+  display: grid;
+  grid-template-columns: repeat(7, var(--card-w));
+  gap: var(--gap);
+  justify-content: center;
+  flex: 1;
+  align-items: start;
+}
+
+.pile {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-r);
+  background: var(--pile-empty);
+  border: 1.5px dashed var(--pile-empty-border);
+}
+.pile.column {
+  height: auto;
+  min-height: var(--card-h);
+}
+.pile.foundation {
+  display: flex; align-items: center; justify-content: center;
+}
+.pile.foundation::before {
+  content: attr(data-suit);
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: calc(var(--card-w) * 0.55);
+  opacity: 0.18;
+  color: white;
+  pointer-events: none;
+}
+.pile.foundation[data-suit="♥"]::before,
+.pile.foundation[data-suit="♦"]::before { color: #ff8a96; opacity: 0.22; }
+
+.spacer { width: var(--card-w); height: var(--card-h); }
+
+.pile.drop-target {
+  background: var(--highlight);
+  border-color: var(--selected);
+  border-style: solid;
+}
+.pile.hint-target {
+  outline: 2px solid var(--hint);
+  outline-offset: -2px;
+  animation: pulse 0.8s ease-in-out 3;
+}
+
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(140,233,154,0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(140,233,154,0); }
+}
+
+/* === Cards === */
+.card {
+  position: absolute;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-r);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s, top 0.2s, left 0.2s;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--card-w) * 0.05);
+  overflow: hidden;
+  font-family: "Georgia", "Times New Roman", serif;
+}
+.card.face-down {
+  background:
+    repeating-linear-gradient(45deg,
+      var(--card-back-1) 0, var(--card-back-1) 6px,
+      var(--card-back-2) 6px, var(--card-back-2) 12px);
+  border-color: rgba(255,255,255,0.15);
+}
+.card.face-down::after {
+  content: "";
+  position: absolute; inset: 8%;
+  border: 1.5px solid var(--card-back-line);
+  border-radius: calc(var(--card-r) * 0.6);
+}
+.card.face-down .corner, .card.face-down .center { display: none; }
+
+.card.red { color: var(--red); }
+.card.black { color: var(--black); }
+
+.corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 700;
+  font-size: calc(var(--card-w) * 0.24);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.corner span {
+  font-size: calc(var(--card-w) * 0.22);
+  margin-top: 1px;
+}
+.corner.bottom-right {
+  position: absolute;
+  bottom: calc(var(--card-w) * 0.05);
+  right: calc(var(--card-w) * 0.05);
+  transform: rotate(180deg);
+}
+.center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--card-w) * 0.6);
+  line-height: 1;
+}
+
+.card.selected {
+  outline: 3px solid var(--selected);
+  outline-offset: -2px;
+  box-shadow: 0 0 14px var(--selected-glow), var(--shadow-md);
+  z-index: 200 !important;
+  transform: translateY(-3px);
+}
+.card.dropping {
+  animation: drop 0.25s ease-out;
+}
+@keyframes drop {
+  0% { transform: scale(1.06) translateY(-6px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.card.invalid {
+  animation: shake 0.32s;
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-2deg); }
+  40% { transform: translateX(6px) rotate(2deg); }
+  60% { transform: translateX(-4px) rotate(-1deg); }
+  80% { transform: translateX(4px) rotate(1deg); }
+}
+.card.flip {
+  animation: flip 0.3s ease;
+}
+@keyframes flip {
+  0% { transform: rotateY(0); }
+  50% { transform: rotateY(90deg); }
+  100% { transform: rotateY(0); }
+}
+
+/* Stock recycle indicator */
+.stock-recycle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--card-w) * 0.5);
+  color: rgba(255,255,255,0.45);
+  pointer-events: none;
+}
+.stock-recycle.disabled { color: rgba(255,80,80,0.5); }
+
+/* === Win overlay === */
+#winOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#winOverlay.hidden { display: none; }
+.win-card {
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  padding: 28px 24px;
+  border-radius: 16px;
+  max-width: 320px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--gold);
+}
+.win-card h2 {
+  margin: 0 0 12px;
+  font-size: 1.6rem;
+  color: var(--gold);
+}
+.win-card p { margin: 6px 0; font-size: 0.95rem; }
+.win-card .win-actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.win-card button { color: var(--panel-text); background: rgba(0,0,0,0.05); border: 1px solid var(--panel-border); }
+[data-theme="dark"] .win-card button { color: var(--panel-text); background: rgba(255,255,255,0.06); }
+.win-card .btn-primary { color: #2a1a00; background: var(--gold); border-color: transparent; }
+
+/* Confetti */
+.confetti {
+  position: fixed;
+  width: 8px; height: 14px;
+  pointer-events: none;
+  top: -20px;
+  z-index: 10000;
+  animation: fall linear forwards;
+}
+@keyframes fall {
+  to { transform: translateY(110vh) rotate(720deg); }
+}
+
+/* === Toast === */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: rgba(0,0,0,0.85);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 5000;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* === Responsive === */
+@media (max-width: 520px) {
+  .brand { font-size: 0.85rem; }
+  .stats { font-size: 0.72rem; gap: 8px; width: 100%; order: 3; justify-content: center; }
+  button { padding: 5px 7px; font-size: 0.85rem; min-height: 30px; min-width: 30px; }
+  header { padding: 6px 8px; gap: 6px; }
+  :root { --card-w: 13vw; }
+}
+@media (max-height: 600px) and (orientation: landscape) {
+  :root { --card-w: min(8vw, 64px); }
+  header { padding: 4px 8px; }
+  main { padding: 6px 4px 4px; }
+}
+@media (min-width: 900px) {
+  :root { --card-w: 80px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="s-b">♠</span> Solitaire <span class="s-r">♥</span></div>
+  <div class="stats">
+    <span id="timer" title="Temps">⏱ 00:00</span>
+    <span id="moves" title="Coups">↻ 0</span>
+    <span id="score" title="Score">★ 0</span>
+  </div>
+  <div class="controls">
+    <button id="newGameBtn" title="Nouvelle partie">🔄</button>
+    <button id="undoBtn" title="Annuler le dernier coup">↶</button>
+    <button id="hintBtn" title="Indice">💡</button>
+    <button id="autoBtn" title="Envoi auto vers fondations">⚡</button>
+    <button id="themeBtn" title="Thème clair / sombre">🌙</button>
+    <button id="settingsBtn" title="Réglages">⚙️</button>
+  </div>
+</header>
+
+<div id="settings" class="hidden">
+  <label>Difficulté
+    <select id="difficulty">
+      <option value="easy">Facile (1 carte, recyclage illimité)</option>
+      <option value="medium">Moyen (1 carte, 3 passes)</option>
+      <option value="hard">Difficile (3 cartes, illimité)</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="soundToggle" checked> 🔊 Son</label>
+  <label><input type="checkbox" id="vibrationToggle" checked> 📳 Vibration</label>
+  <label><input type="checkbox" id="autoFoundationToggle" checked> Double-clic → fondation</label>
+  <button id="closeSettings" class="btn-primary" style="margin-left:auto">Fermer</button>
+</div>
+
+<main>
+  <div class="top-row">
+    <div id="stock" class="pile" data-pile="stock"></div>
+    <div id="waste" class="pile" data-pile="waste"></div>
+    <div class="spacer"></div>
+    <div class="pile foundation" data-pile="foundation" data-foundation="0" data-suit="♠"></div>
+    <div class="pile foundation" data-pile="foundation" data-foundation="1" data-suit="♥"></div>
+    <div class="pile foundation" data-pile="foundation" data-foundation="2" data-suit="♦"></div>
+    <div class="pile foundation" data-pile="foundation" data-foundation="3" data-suit="♣"></div>
+  </div>
+  <div class="tableau">
+    <div class="pile column" data-pile="tableau" data-col="0"></div>
+    <div class="pile column" data-pile="tableau" data-col="1"></div>
+    <div class="pile column" data-pile="tableau" data-col="2"></div>
+    <div class="pile column" data-pile="tableau" data-col="3"></div>
+    <div class="pile column" data-pile="tableau" data-col="4"></div>
+    <div class="pile column" data-pile="tableau" data-col="5"></div>
+    <div class="pile column" data-pile="tableau" data-col="6"></div>
+  </div>
+</main>
+
+<div id="winOverlay" class="hidden">
+  <div class="win-card">
+    <h2>🎉 Bravo !</h2>
+    <p id="winStats"></p>
+    <div class="win-actions">
+      <button id="winClose">Fermer</button>
+      <button id="winNew" class="btn-primary">Nouvelle partie</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+// ====================================================================
+// Constantes
+// ====================================================================
+const SUITS = ['♠','♥','♦','♣'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const STORAGE_KEY = 'solitaire-v1';
+
+// ====================================================================
+// État global
+// ====================================================================
+let state = null;
+let history = [];
+let selection = null;     // { type, col?, idx?, cards: [] }
+let elapsed = 0;
+let timerInterval = null;
+let started = false;
+let lastTapTime = 0;
+let lastTapCardId = null;
+
+const settings = {
+  themeOverride: null,    // 'light' | 'dark' | null (auto)
+  sound: true,
+  vibration: true,
+  difficulty: 'easy',
+  autoFoundation: true
+};
+
+// ====================================================================
+// Persistance des réglages
+// ====================================================================
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (s.settings) Object.assign(settings, s.settings);
+  } catch (e) {}
+  document.getElementById('soundToggle').checked = settings.sound;
+  document.getElementById('vibrationToggle').checked = settings.vibration;
+  document.getElementById('difficulty').value = settings.difficulty;
+  document.getElementById('autoFoundationToggle').checked = settings.autoFoundation;
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings }));
+  } catch (e) {}
+}
+
+function applyTheme() {
+  let theme = settings.themeOverride;
+  if (!theme) {
+    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.dataset.theme = theme;
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'dark' ? '#04261a' : '#0a5f2c');
+}
+
+// ====================================================================
+// Sons (Web Audio API)
+// ====================================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq, dur, type = 'sine', vol = 0.08, delay = 0) {
+  if (!settings.sound) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+function sndDeal()       { tone(420, 0.06, 'square', 0.04); }
+function sndPlace()      { tone(620, 0.08, 'sine', 0.07); }
+function sndFoundation() { tone(880, 0.12, 'sine', 0.08); tone(1320, 0.16, 'sine', 0.06, 0.06); }
+function sndInvalid()    { tone(140, 0.18, 'sawtooth', 0.06); }
+function sndFlip()       { tone(540, 0.05, 'triangle', 0.05); tone(720, 0.05, 'triangle', 0.05, 0.04); }
+function sndWin() {
+  [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.32, 'sine', 0.1, i * 0.13));
+}
+function vib(ms) {
+  if (settings.vibration && navigator.vibrate) {
+    try { navigator.vibrate(ms); } catch (e) {}
+  }
+}
+
+// ====================================================================
+// Création / mélange du paquet
+// ====================================================================
+function createDeck() {
+  const deck = [];
+  for (let s = 0; s < 4; s++) {
+    for (let r = 0; r < 13; r++) {
+      deck.push({
+        suit: SUITS[s],
+        suitIdx: s,
+        rank: RANKS[r],
+        value: r + 1,
+        red: s === 1 || s === 2,
+        faceUp: false,
+        id: `${SUITS[s]}-${RANKS[r]}`
+      });
+    }
+  }
+  return deck;
+}
+function shuffle(deck) {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+// ====================================================================
+// Nouvelle partie
+// ====================================================================
+function newGame() {
+  const deck = shuffle(createDeck());
+  state = {
+    stock: [],
+    waste: [],
+    foundations: [[], [], [], []],
+    tableau: [[], [], [], [], [], [], []],
+    drawCount: settings.difficulty === 'hard' ? 3 : 1,
+    passLimit: settings.difficulty === 'medium' ? 3 : Infinity,
+    passesUsed: 0,
+    moves: 0,
+    score: 0
+  };
+  let i = 0;
+  for (let col = 0; col < 7; col++) {
+    for (let row = 0; row <= col; row++) {
+      const card = deck[i++];
+      card.faceUp = (row === col);
+      state.tableau[col].push(card);
+    }
+  }
+  while (i < deck.length) {
+    deck[i].faceUp = false;
+    state.stock.push(deck[i]);
+    i++;
+  }
+  history = [];
+  selection = null;
+  elapsed = 0;
+  started = false;
+  stopTimer();
+  document.getElementById('timer').textContent = '⏱ 00:00';
+  hideWin();
+  render();
+  updateHUD();
+  sndDeal();
+}
+
+// ====================================================================
+// Validation des coups
+// ====================================================================
+function canMoveToFoundation(card, foundIdx) {
+  const pile = state.foundations[foundIdx];
+  if (card.suitIdx !== foundIdx) return false;
+  if (pile.length === 0) return card.value === 1;
+  const top = pile[pile.length - 1];
+  return card.value === top.value + 1;
+}
+function canMoveToTableau(card, col) {
+  const pile = state.tableau[col];
+  if (pile.length === 0) return card.value === 13;
+  const top = pile[pile.length - 1];
+  if (!top.faceUp) return false;
+  return top.red !== card.red && card.value === top.value - 1;
+}
+function getMovableSequence(col, idx) {
+  const pile = state.tableau[col];
+  if (idx >= pile.length) return null;
+  const cards = pile.slice(idx);
+  for (let i = 0; i < cards.length; i++) {
+    if (!cards[i].faceUp) return null;
+    if (i > 0) {
+      const prev = cards[i-1], curr = cards[i];
+      if (prev.red === curr.red) return null;
+      if (curr.value !== prev.value - 1) return null;
+    }
+  }
+  return cards;
+}
+
+// ====================================================================
+// Snapshots / undo
+// ====================================================================
+function snapshot() {
+  return JSON.stringify({
+    stock: state.stock,
+    waste: state.waste,
+    foundations: state.foundations,
+    tableau: state.tableau,
+    passesUsed: state.passesUsed,
+    moves: state.moves,
+    score: state.score
+  });
+}
+function pushHistory() {
+  history.push(snapshot());
+  if (history.length > 200) history.shift();
+}
+function undo() {
+  if (history.length === 0) { showToast("Rien à annuler"); return; }
+  const prev = JSON.parse(history.pop());
+  state.stock = prev.stock;
+  state.waste = prev.waste;
+  state.foundations = prev.foundations;
+  state.tableau = prev.tableau;
+  state.passesUsed = prev.passesUsed;
+  state.moves = prev.moves;
+  state.score = Math.max(0, prev.score - 2);
+  selection = null;
+  render();
+  updateHUD();
+  sndFlip();
+  vib(15);
+}
+
+// ====================================================================
+// Exécution des coups
+// ====================================================================
+function performMove(source, dest, isAuto = false) {
+  pushHistory();
+  let cards;
+  if (source.type === 'waste') {
+    cards = [state.waste.pop()];
+  } else if (source.type === 'foundation') {
+    cards = [state.foundations[source.col].pop()];
+  } else if (source.type === 'tableau') {
+    cards = state.tableau[source.col].splice(source.idx);
+  }
+  if (dest.type === 'foundation') {
+    state.foundations[dest.col].push(...cards);
+    state.score += 10;
+  } else if (dest.type === 'tableau') {
+    state.tableau[dest.col].push(...cards);
+    if (source.type === 'foundation') state.score = Math.max(0, state.score - 15);
+    else if (source.type === 'waste') state.score += 5;
+  }
+  // Retournement de la carte exposée dans la colonne source
+  if (source.type === 'tableau') {
+    const pile = state.tableau[source.col];
+    if (pile.length > 0 && !pile[pile.length-1].faceUp) {
+      pile[pile.length-1].faceUp = true;
+      state.score += 5;
+      sndFlip();
+    }
+  }
+  state.moves++;
+  if (!started) startTimer();
+  selection = null;
+
+  if (dest.type === 'foundation') sndFoundation(); else sndPlace();
+  vib(20);
+  render();
+  updateHUD();
+
+  if (checkWin()) handleWin();
+  else if (canAutoComplete() && isAllFaceUp()) {
+    // Suggérer auto-complete quand toutes les cartes sont face visible
+    const autoBtn = document.getElementById('autoBtn');
+    autoBtn.style.background = 'var(--gold)';
+    autoBtn.style.color = '#2a1a00';
+  }
+}
+
+function tryMove(source, dest) {
+  // Validation
+  if (dest.type === 'foundation') {
+    if (source.cards.length !== 1) return false;
+    if (!canMoveToFoundation(source.cards[0], dest.col)) return false;
+  } else if (dest.type === 'tableau') {
+    if (!canMoveToTableau(source.cards[0], dest.col)) return false;
+  }
+  // Source identique à dest : refus
+  if (source.type === dest.type && source.col === dest.col) return false;
+  performMove(source, dest);
+  return true;
+}
+
+// ====================================================================
+// Tirage du stock
+// ====================================================================
+function drawFromStock() {
+  pushHistory();
+  if (state.stock.length === 0) {
+    // Recyclage
+    if (state.waste.length === 0) { history.pop(); return; }
+    if (state.passesUsed >= state.passLimit) {
+      sndInvalid();
+      vib(40);
+      showToast("Limite de passes atteinte");
+      history.pop();
+      return;
+    }
+    while (state.waste.length > 0) {
+      const c = state.waste.pop();
+      c.faceUp = false;
+      state.stock.push(c);
+    }
+    state.passesUsed++;
+    state.moves++;
+    sndFlip();
+    vib(15);
+  } else {
+    const n = Math.min(state.drawCount, state.stock.length);
+    for (let i = 0; i < n; i++) {
+      const c = state.stock.pop();
+      c.faceUp = true;
+      state.waste.push(c);
+    }
+    state.moves++;
+    sndDeal();
+    vib(10);
+  }
+  if (!started) startTimer();
+  selection = null;
+  render();
+  updateHUD();
+}
+
+// ====================================================================
+// Auto-complete vers fondations
+// ====================================================================
+function autoSendOne() {
+  // Tente d'envoyer une carte (waste, ou top tableau) vers fondation
+  // Waste
+  if (state.waste.length > 0) {
+    const c = state.waste[state.waste.length-1];
+    if (canMoveToFoundation(c, c.suitIdx)) {
+      performMove({ type: 'waste', cards: [c] }, { type: 'foundation', col: c.suitIdx });
+      return true;
+    }
+  }
+  // Tableau tops
+  for (let col = 0; col < 7; col++) {
+    const pile = state.tableau[col];
+    if (pile.length === 0) continue;
+    const c = pile[pile.length-1];
+    if (!c.faceUp) continue;
+    if (canMoveToFoundation(c, c.suitIdx)) {
+      performMove({ type: 'tableau', col, idx: pile.length-1, cards: [c] }, { type: 'foundation', col: c.suitIdx });
+      return true;
+    }
+  }
+  return false;
+}
+function isAllFaceUp() {
+  return state.tableau.every(col => col.every(c => c.faceUp));
+}
+function canAutoComplete() {
+  return state.stock.length === 0 && state.waste.length === 0 && isAllFaceUp();
+}
+function autoComplete() {
+  if (!isAllFaceUp()) {
+    showToast("Toutes les cartes doivent être visibles");
+    return;
+  }
+  let did = false;
+  function step() {
+    if (autoSendOne()) {
+      did = true;
+      setTimeout(step, 90);
+    } else {
+      if (!did) showToast("Aucune carte à envoyer");
+    }
+  }
+  step();
+}
+
+// ====================================================================
+// Indice (hint)
+// ====================================================================
+function findHint() {
+  // Priorité 1 : envoi vers fondation
+  if (state.waste.length > 0) {
+    const c = state.waste[state.waste.length-1];
+    if (canMoveToFoundation(c, c.suitIdx)) {
+      return { source: '#waste', target: `[data-foundation="${c.suitIdx}"]` };
+    }
+  }
+  for (let col = 0; col < 7; col++) {
+    const pile = state.tableau[col];
+    if (pile.length === 0) continue;
+    const c = pile[pile.length-1];
+    if (c.faceUp && canMoveToFoundation(c, c.suitIdx)) {
+      return { source: `[data-col="${col}"]`, target: `[data-foundation="${c.suitIdx}"]` };
+    }
+  }
+  // Priorité 2 : déplacements tableau utiles (révèlent face-down ou libèrent une colonne)
+  for (let col = 0; col < 7; col++) {
+    const pile = state.tableau[col];
+    for (let i = 0; i < pile.length; i++) {
+      if (!pile[i].faceUp) continue;
+      const seq = getMovableSequence(col, i);
+      if (!seq) continue;
+      const top = seq[0];
+      for (let dest = 0; dest < 7; dest++) {
+        if (dest === col) continue;
+        if (canMoveToTableau(top, dest)) {
+          // Ne suggère que si utile
+          const revealsCard = i > 0 && !pile[i-1].faceUp;
+          const emptiesCol = i === 0 && state.tableau[dest].length > 0;
+          if (revealsCard || emptiesCol) {
+            return { source: `[data-col="${col}"]`, target: `[data-col="${dest}"]` };
+          }
+        }
+      }
+    }
+  }
+  // Priorité 3 : waste vers tableau
+  if (state.waste.length > 0) {
+    const c = state.waste[state.waste.length-1];
+    for (let dest = 0; dest < 7; dest++) {
+      if (canMoveToTableau(c, dest)) {
+        return { source: '#waste', target: `[data-col="${dest}"]` };
+      }
+    }
+  }
+  // Priorité 4 : piocher
+  if (state.stock.length > 0 || (state.waste.length > 0 && state.passesUsed < state.passLimit)) {
+    return { source: '#stock', target: '#stock' };
+  }
+  return null;
+}
+function showHint() {
+  const h = findHint();
+  if (!h) { showToast("Aucun coup évident — recommencez peut-être ?"); return; }
+  const src = document.querySelector(h.source);
+  const tgt = document.querySelector(h.target);
+  [src, tgt].forEach(el => el && el.classList.add('hint-target'));
+  setTimeout(() => {
+    [src, tgt].forEach(el => el && el.classList.remove('hint-target'));
+  }, 2400);
+}
+
+// ====================================================================
+// Détection victoire
+// ====================================================================
+function checkWin() {
+  return state.foundations.every(p => p.length === 13);
+}
+function handleWin() {
+  stopTimer();
+  sndWin();
+  vib([30, 80, 30, 80, 30, 80, 200]);
+  document.getElementById('winStats').innerHTML =
+    `Score : <strong>${state.score}</strong><br>` +
+    `Coups : ${state.moves}<br>` +
+    `Temps : ${formatTime(elapsed)}<br>` +
+    `Difficulté : ${labelDifficulty(settings.difficulty)}`;
+  document.getElementById('winOverlay').classList.remove('hidden');
+  // Confetti
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => spawnConfetti(), i * 30);
+  }
+}
+function hideWin() {
+  document.getElementById('winOverlay').classList.add('hidden');
+}
+function spawnConfetti() {
+  const c = document.createElement('div');
+  c.className = 'confetti';
+  c.style.left = Math.random() * 100 + 'vw';
+  c.style.background = ['#f3c969','#c8202b','#2d4f8f','#0c6b3a','#fff'][Math.floor(Math.random()*5)];
+  c.style.animationDuration = (2 + Math.random()*2) + 's';
+  c.style.transform = `rotate(${Math.random()*360}deg)`;
+  document.body.appendChild(c);
+  setTimeout(() => c.remove(), 5000);
+}
+function labelDifficulty(d) {
+  return { easy: 'Facile', medium: 'Moyen', hard: 'Difficile' }[d] || d;
+}
+
+// ====================================================================
+// Timer
+// ====================================================================
+function startTimer() {
+  if (started) return;
+  started = true;
+  const t0 = Date.now() - elapsed * 1000;
+  timerInterval = setInterval(() => {
+    elapsed = Math.floor((Date.now() - t0) / 1000);
+    document.getElementById('timer').textContent = '⏱ ' + formatTime(elapsed);
+  }, 500);
+}
+function stopTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+  started = false;
+}
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+// ====================================================================
+// Rendu
+// ====================================================================
+function render() {
+  // Stock
+  const stockEl = document.getElementById('stock');
+  stockEl.innerHTML = '';
+  if (state.stock.length > 0) {
+    const card = state.stock[state.stock.length - 1];
+    stockEl.appendChild(makeCardEl(card, { type: 'stock' }));
+    // Indicateur du nombre de cartes restantes
+    if (state.stock.length > 1) {
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:-6px;right:-6px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 5px;border-radius:8px;z-index:300;pointer-events:none';
+      badge.textContent = state.stock.length;
+      stockEl.appendChild(badge);
+    }
+  } else {
+    const recycle = document.createElement('div');
+    recycle.className = 'stock-recycle';
+    if (state.passesUsed >= state.passLimit) {
+      recycle.classList.add('disabled');
+      recycle.textContent = '✕';
+    } else if (state.waste.length > 0) {
+      recycle.textContent = '↻';
+    }
+    stockEl.appendChild(recycle);
+  }
+
+  // Waste — affiche jusqu'à 3 cartes en éventail
+  const wasteEl = document.getElementById('waste');
+  wasteEl.innerHTML = '';
+  const visible = Math.min(state.drawCount === 3 ? 3 : 1, state.waste.length);
+  const startIdx = state.waste.length - visible;
+  for (let i = startIdx; i < state.waste.length; i++) {
+    if (i < 0) continue;
+    const card = state.waste[i];
+    const isTop = i === state.waste.length - 1;
+    const offset = (i - startIdx) * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) * 0.18);
+    const el = makeCardEl(card, { type: 'waste', isTop });
+    el.style.left = offset + 'px';
+    if (!isTop) el.style.pointerEvents = 'none';
+    wasteEl.appendChild(el);
+  }
+
+  // Foundations
+  for (let f = 0; f < 4; f++) {
+    const fEl = document.querySelector(`[data-foundation="${f}"]`);
+    fEl.innerHTML = '';
+    const pile = state.foundations[f];
+    if (pile.length > 0) {
+      const card = pile[pile.length - 1];
+      fEl.appendChild(makeCardEl(card, { type: 'foundation', col: f }));
+    }
+  }
+
+  // Tableau
+  const cardW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w'));
+  const cardH = cardW * 1.42;
+  for (let c = 0; c < 7; c++) {
+    const colEl = document.querySelector(`[data-col="${c}"]`);
+    colEl.innerHTML = '';
+    let offset = 0;
+    state.tableau[c].forEach((card, idx) => {
+      const el = makeCardEl(card, { type: 'tableau', col: c, idx });
+      el.style.top = offset + 'px';
+      colEl.appendChild(el);
+      offset += card.faceUp ? cardH * 0.27 : cardH * 0.13;
+    });
+    // Ajuster la hauteur de la colonne pour englober toutes les cartes
+    colEl.style.minHeight = (offset + cardH) + 'px';
+  }
+
+  // Restaurer la sélection visuelle
+  if (selection) {
+    selection.cards.forEach(c => {
+      const el = document.querySelector(`[data-card-id="${cssEsc(c.id)}"]`);
+      if (el) el.classList.add('selected');
+    });
+  }
+}
+
+function cssEsc(s) {
+  return s.replace(/["\\]/g, '\\$&');
+}
+
+function makeCardEl(card, loc) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.cardId = card.id;
+  if (loc.type) el.dataset.locType = loc.type;
+  if (loc.col !== undefined) el.dataset.locCol = loc.col;
+  if (loc.idx !== undefined) el.dataset.locIdx = loc.idx;
+  if (!card.faceUp) {
+    el.classList.add('face-down');
+  } else {
+    el.classList.add(card.red ? 'red' : 'black');
+    el.innerHTML = `
+      <div class="corner top-left">${card.rank}<span>${card.suit}</span></div>
+      <div class="center">${card.suit}</div>
+      <div class="corner bottom-right">${card.rank}<span>${card.suit}</span></div>
+    `;
+  }
+  return el;
+}
+
+function updateHUD() {
+  document.getElementById('moves').textContent = '↻ ' + state.moves;
+  document.getElementById('score').textContent = '★ ' + state.score;
+  document.getElementById('undoBtn').disabled = history.length === 0;
+}
+
+// ====================================================================
+// Toast
+// ====================================================================
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ====================================================================
+// Sélection / déplacement par tap
+// ====================================================================
+function clearSelection() {
+  document.querySelectorAll('.card.selected').forEach(el => el.classList.remove('selected'));
+  selection = null;
+}
+
+function locateCard(cardEl) {
+  const id = cardEl.dataset.cardId;
+  const type = cardEl.dataset.locType;
+  if (type === 'stock') return null; // on ne sélectionne pas le stock par sélection
+  if (type === 'waste') {
+    const card = state.waste[state.waste.length - 1];
+    if (!card || card.id !== id) return null;
+    return { type: 'waste', cards: [card] };
+  }
+  if (type === 'foundation') {
+    const col = parseInt(cardEl.dataset.locCol);
+    const pile = state.foundations[col];
+    const card = pile[pile.length - 1];
+    if (!card || card.id !== id) return null;
+    return { type: 'foundation', col, cards: [card] };
+  }
+  if (type === 'tableau') {
+    const col = parseInt(cardEl.dataset.locCol);
+    const idx = parseInt(cardEl.dataset.locIdx);
+    const seq = getMovableSequence(col, idx);
+    if (!seq) return null;
+    return { type: 'tableau', col, idx, cards: seq };
+  }
+  return null;
+}
+
+function autoMoveCard(loc) {
+  // Tente automatique : si une seule carte → fondation prioritaire, sinon tableau
+  const top = loc.cards[0];
+  if (loc.cards.length === 1) {
+    if (canMoveToFoundation(top, top.suitIdx)) {
+      performMove(loc, { type: 'foundation', col: top.suitIdx });
+      return true;
+    }
+  }
+  // Sinon essai tableau (préférer colonnes non vides pour ne pas gâcher les rois)
+  for (let dest = 0; dest < 7; dest++) {
+    if (loc.type === 'tableau' && loc.col === dest) continue;
+    if (state.tableau[dest].length === 0) continue;
+    if (canMoveToTableau(top, dest)) {
+      performMove(loc, { type: 'tableau', col: dest });
+      return true;
+    }
+  }
+  // Colonnes vides en dernier recours
+  for (let dest = 0; dest < 7; dest++) {
+    if (loc.type === 'tableau' && loc.col === dest) continue;
+    if (state.tableau[dest].length > 0) continue;
+    if (canMoveToTableau(top, dest)) {
+      performMove(loc, { type: 'tableau', col: dest });
+      return true;
+    }
+  }
+  return false;
+}
+
+function isDoubleTap(cardId) {
+  const now = Date.now();
+  const isDouble = (cardId === lastTapCardId) && (now - lastTapTime < 380);
+  lastTapTime = now;
+  lastTapCardId = cardId;
+  return isDouble;
+}
+
+function handleClick(e) {
+  const card = e.target.closest('.card');
+  const pile = e.target.closest('.pile');
+  if (!card && !pile) {
+    clearSelection();
+    return;
+  }
+
+  // Clic sur stock : tirer
+  if (pile && pile.dataset.pile === 'stock') {
+    clearSelection();
+    drawFromStock();
+    return;
+  }
+
+  // Double-tap → fondation auto
+  if (card && settings.autoFoundation && isDoubleTap(card.dataset.cardId)) {
+    const loc = locateCard(card);
+    if (loc && loc.cards.length === 1) {
+      const c = loc.cards[0];
+      if (canMoveToFoundation(c, c.suitIdx)) {
+        clearSelection();
+        performMove(loc, { type: 'foundation', col: c.suitIdx });
+        return;
+      }
+    }
+  }
+
+  // Cas où on a déjà une sélection
+  if (selection) {
+    // Re-tap sur la carte déjà sélectionnée → tente coup auto, sinon désélection
+    if (card && selection.cards.some(c => c.id === card.dataset.cardId)) {
+      const ok = autoMoveCard(selection);
+      if (!ok) clearSelection();
+      return;
+    }
+    // Détermine destination
+    let dest = null;
+    if (pile) {
+      if (pile.dataset.pile === 'foundation') {
+        dest = { type: 'foundation', col: parseInt(pile.dataset.foundation) };
+      } else if (pile.dataset.pile === 'tableau') {
+        dest = { type: 'tableau', col: parseInt(pile.dataset.col) };
+      } else if (pile.dataset.pile === 'waste') {
+        // pas valide comme destination
+      }
+    }
+    // Si on a cliqué sur une carte dans une pile, la dest est cette pile
+    if (!dest && card) {
+      const cType = card.dataset.locType;
+      if (cType === 'foundation') {
+        dest = { type: 'foundation', col: parseInt(card.dataset.locCol) };
+      } else if (cType === 'tableau') {
+        dest = { type: 'tableau', col: parseInt(card.dataset.locCol) };
+      }
+    }
+    if (dest) {
+      const ok = tryMove(selection, dest);
+      if (!ok) {
+        // Coup invalide : feedback puis tentative de nouvelle sélection si on a cliqué sur une carte sélectionnable
+        flashInvalid(card || pile);
+        sndInvalid();
+        vib(40);
+        clearSelection();
+        // Tenter de re-sélectionner cette nouvelle carte
+        if (card) {
+          const newLoc = locateCard(card);
+          if (newLoc) selectLoc(newLoc);
+        }
+      }
+    } else {
+      clearSelection();
+    }
+    return;
+  }
+
+  // Pas de sélection → essayer de sélectionner
+  if (card) {
+    const loc = locateCard(card);
+    if (loc) selectLoc(loc);
+  }
+}
+
+function selectLoc(loc) {
+  clearSelection();
+  selection = loc;
+  loc.cards.forEach(c => {
+    const el = document.querySelector(`[data-card-id="${cssEsc(c.id)}"]`);
+    if (el) el.classList.add('selected');
+  });
+}
+
+function flashInvalid(el) {
+  if (!el) return;
+  el.classList.add('invalid');
+  setTimeout(() => el.classList.remove('invalid'), 320);
+}
+
+// ====================================================================
+// Initialisation
+// ====================================================================
+function init() {
+  loadSettings();
+  applyTheme();
+
+  // Réagir au changement de thème système si pas d'override
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (!settings.themeOverride) applyTheme();
+    });
+  }
+
+  // Boutons header
+  document.getElementById('newGameBtn').addEventListener('click', () => {
+    if (state && state.moves > 0 && !checkWin()) {
+      if (!confirm('Démarrer une nouvelle partie ?')) return;
+    }
+    newGame();
+  });
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('hintBtn').addEventListener('click', showHint);
+  document.getElementById('autoBtn').addEventListener('click', autoComplete);
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme;
+    settings.themeOverride = cur === 'dark' ? 'light' : 'dark';
+    saveSettings();
+    applyTheme();
+  });
+  document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.getElementById('settings').classList.toggle('hidden');
+  });
+  document.getElementById('closeSettings').addEventListener('click', () => {
+    document.getElementById('settings').classList.add('hidden');
+  });
+
+  // Réglages
+  document.getElementById('soundToggle').addEventListener('change', (e) => {
+    settings.sound = e.target.checked; saveSettings();
+    if (settings.sound) sndPlace();
+  });
+  document.getElementById('vibrationToggle').addEventListener('change', (e) => {
+    settings.vibration = e.target.checked; saveSettings();
+    if (settings.vibration) vib(30);
+  });
+  document.getElementById('autoFoundationToggle').addEventListener('change', (e) => {
+    settings.autoFoundation = e.target.checked; saveSettings();
+  });
+  document.getElementById('difficulty').addEventListener('change', (e) => {
+    settings.difficulty = e.target.value; saveSettings();
+    if (confirm('Changer la difficulté redémarre la partie. Continuer ?')) {
+      newGame();
+    } else {
+      e.target.value = settings.difficulty = state ? (state.drawCount === 3 ? 'hard' : (state.passLimit === 3 ? 'medium' : 'easy')) : 'easy';
+    }
+  });
+
+  // Win overlay
+  document.getElementById('winNew').addEventListener('click', () => { hideWin(); newGame(); });
+  document.getElementById('winClose').addEventListener('click', hideWin);
+
+  // Click handler global
+  document.querySelector('main').addEventListener('click', handleClick);
+
+  // Resize : re-render pour mettre à jour les positions
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(render, 80);
+  });
+
+  // Empêcher zoom/scroll non désirés
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+
+  // Pause timer si onglet caché
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && timerInterval) {
+      stopTimer();
+    } else if (!document.hidden && state && state.moves > 0 && !checkWin()) {
+      startTimer();
+    }
+  });
+
+  // Premier débloquage audio sur premier clic (iOS)
+  document.addEventListener('click', ensureAudio, { once: true });
+  document.addEventListener('touchstart', ensureAudio, { once: true });
+
+  newGame();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
