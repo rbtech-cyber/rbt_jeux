@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bibliothèque de Jeux</title>
+    <style>
+        :root[data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-hover: #6366f1;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --input-bg: #1e293b;
+            --input-border: rgba(255, 255, 255, 0.15);
+            --toggle-bg: #334155;
+            --toggle-icon: '☀️';
+            --footer-color: #64748b;
+        }
+
+        :root[data-theme="light"] {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --border-hover: #6366f1;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --input-bg: #ffffff;
+            --input-border: rgba(0, 0, 0, 0.15);
+            --toggle-bg: #e2e8f0;
+            --toggle-icon: '🌙';
+            --footer-color: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+        }
+
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+            width: 100%;
+            max-width: 1200px;
+            position: relative;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .theme-toggle {
+            background: var(--toggle-bg);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-color);
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover {
+            opacity: 0.85;
+        }
+
+        .theme-toggle-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 0 10px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin: 0 0 20px;
+        }
+
+        .search-bar-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .search-bar {
+            width: 100%;
+            max-width: 480px;
+            padding: 10px 16px 10px 42px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .search-container {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        .search-bar:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .search-bar::placeholder {
+            color: var(--text-muted);
+        }
+
+        .results-count {
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            min-height: 1.2em;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .game-card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.2s;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-color: var(--border-hover);
+        }
+
+        .game-card.hidden {
+            display: none;
+        }
+
+        .game-icon {
+            font-size: 48px;
+            margin-bottom: 14px;
+        }
+
+        .game-title {
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .game-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 18px;
+            flex-grow: 1;
+        }
+
+        .play-button {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .play-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .no-results {
+            display: none;
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        footer {
+            margin-top: 50px;
+            color: var(--footer-color);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-top">
+            <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">
+                <span id="themeIcon">☀️</span>
+                <span class="theme-toggle-label" id="themeLabel">Mode clair</span>
+            </button>
+        </div>
+        <h1>Game Launcher</h1>
+        <p class="subtitle">Sélectionnez un jeu pour commencer</p>
+        <div class="search-bar-wrapper">
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input
+                    type="search"
+                    class="search-bar"
+                    id="searchInput"
+                    placeholder="Rechercher un jeu…"
+                    autocomplete="off"
+                    aria-label="Rechercher un jeu"
+                >
+            </div>
+        </div>
+    </header>
+
+    <div class="results-count" id="resultsCount"></div>
+
+    <div class="container" id="gameGrid">
+
+        <div class="game-card" data-title="Arcade rétro" data-desc="Snake Tetris Casse-briques Pong Pacman">
+            <div class="game-icon">🎮</div>
+            <div class="game-title">Arcade rétro</div>
+            <div class="game-desc">Snake, Tetris, Casse-briques, Pong, Pacman.</div>
+            <a href="arcade_retro_v4-2.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Lettres mélangées" data-desc="Composez des mots lettres mélangées grille">
+            <div class="game-icon">🔤</div>
+            <div class="game-title">Lettres mélangées</div>
+            <div class="game-desc">Composez des mots à partir des lettres mélangées dans une grille.</div>
+            <a href="des-lettres_v5.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Jeu de dames" data-desc="dames difficulté stratégie">
+            <div class="game-icon">♟️</div>
+            <div class="game-title">Jeu de dames</div>
+            <div class="game-desc">Un jeu de dames avec 3 niveaux de difficulté.</div>
+            <a href="jeu-de-dames_v1.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Grille croissante" data-desc="chiffres ordre croissant cliquez">
+            <div class="game-icon">📈</div>
+            <div class="game-title">Grille croissante</div>
+            <div class="game-desc">Cliquez sur les chiffres dans l'ordre croissant.</div>
+            <a href="jeu_grille_croissante_v1-2.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Labyrinthe tournant" data-desc="labyrinthe tournant nord">
+            <div class="game-icon">🔀</div>
+            <div class="game-title">Labyrinthe tournant</div>
+            <div class="game-desc">Ne perdez pas le nord avec ce labyrinthe tournant!</div>
+            <a href="jeu_grille_croissante_v1-2.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Réflexes de chat" data-desc="réflexes laser chat">
+            <div class="game-icon">😸</div>
+            <div class="game-title">Réflexes de chat</div>
+            <div class="game-desc">Testez vos réflexes avec ce jeu de laser pour chat.</div>
+            <a href="laser-chat_v1.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Démineur" data-desc="mines bombes démineur">
+            <div class="game-icon">💣</div>
+            <div class="game-title">Démineur</div>
+            <div class="game-desc">Trouvez les bombes sans les faire exploser!</div>
+            <a href="demineur.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Labyrinth marble" data-desc="labyrinthe bille construction">
+            <div class="game-icon">🧱</div>
+            <div class="game-title">Labyrinth marble</div>
+            <div class="game-desc">Construisez vos labyrinthes pour plateaux à bille.</div>
+            <a href="marble-labyrinth_v4-3.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Snake vs Pacman" data-desc="snake pacman versus ennemi">
+            <div class="game-icon">🐍</div>
+            <div class="game-title">Snake vs Pacman</div>
+            <div class="game-desc">Choisissez snake ou Pacman pour affronter votre ennemi.</div>
+            <a href="pacman_vs_snake_v2.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Jeu du pendu" data-desc="pendu mot lettres devinette">
+            <div class="game-icon">🪑</div>
+            <div class="game-title">Jeu du pendu</div>
+            <div class="game-desc">Trouvez le mot avant que la fin!</div>
+            <a href="pendu_v2.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Pong x4" data-desc="pong quatre côtés balle raquette">
+            <div class="game-icon">🏓</div>
+            <div class="game-title">Pong x4</div>
+            <div class="game-desc">Jouez à Pong mais sur 4 côtés en même temps.</div>
+            <a href="pong4x.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Poulets musiciens" data-desc="musique poulets sons instruments">
+            <div class="game-icon">🐥</div>
+            <div class="game-title">Poulets musiciens</div>
+            <div class="game-desc">Jouez de la musique en étirant des poulets.</div>
+            <a href="poulets-musiciens-v2-1.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Réflexes" data-desc="réflexes point disparaît rapidité">
+            <div class="game-icon">⚡</div>
+            <div class="game-title">Réflexes</div>
+            <div class="game-desc">Testez vos réflexes en touchant le point avant qu'il ne disparaisse.</div>
+            <a href="reflexe_v1.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Lettres flash" data-desc="lettres flash rapidité réflexes alphabet">
+            <div class="game-icon">🔠</div>
+            <div class="game-title">Lettres flash</div>
+            <div class="game-desc">Testez vos réflexes en trouvant rapidement les bonnes lettres.</div>
+            <a href="lettres_flash_v2-2.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="game-card" data-title="Solitaire" data-desc="cartes solitaire patience">
+            <div class="game-icon">♠️</div>
+            <div class="game-title">Solitaire</div>
+            <div class="game-desc">Jeu de cartes du solitaire.</div>
+            <a href="solitaire.html" class="play-button" target="_blank">Jouer</a>
+        </div>
+
+        <div class="no-results" id="noResults">
+            <span class="no-results-icon">🎮</span>
+            Aucun jeu trouvé pour "<span id="searchTerm"></span>"
+        </div>
+
+    </div>
+
+    <footer>
+        &copy; 2026 - Portail de Jeux
+    </footer>
+
+    <script>
+        const html = document.documentElement;
+        const toggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeLabel = document.getElementById('themeLabel');
+        const searchInput = document.getElementById('searchInput');
+        const cards = document.querySelectorAll('.game-card[data-title]');
+        const noResults = document.getElementById('noResults');
+        const resultsCount = document.getElementById('resultsCount');
+        const searchTerm = document.getElementById('searchTerm');
+
+        const savedTheme = localStorage.getItem('gamelib-theme') || 'dark';
+        applyTheme(savedTheme);
+
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            localStorage.setItem('gamelib-theme', next);
+        });
+
+        function applyTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            if (theme === 'dark') {
+                themeIcon.textContent = '☀️';
+                themeLabel.textContent = 'Mode clair';
+            } else {
+                themeIcon.textContent = '🌙';
+                themeLabel.textContent = 'Mode sombre';
+            }
+        }
+
+        searchInput.addEventListener('input', filterGames);
+
+        function normalize(str) {
+            return str.toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function filterGames() {
+            const query = normalize(searchInput.value.trim());
+            let visible = 0;
+
+            cards.forEach(card => {
+                const title = normalize(card.getAttribute('data-title') || '');
+                const desc  = normalize(card.getAttribute('data-desc') || '');
+                const match = !query || title.includes(query) || desc.includes(query);
+                card.classList.toggle('hidden', !match);
+                if (match) visible++;
+            });
+
+            noResults.style.display = (visible === 0 && query) ? 'block' : 'none';
+            searchTerm.textContent = searchInput.value.trim();
+
+            if (query) {
+                resultsCount.textContent = visible === 0
+                    ? 'Aucun résultat'
+                    : `${visible} jeu${visible > 1 ? 'x' : ''} trouvé${visible > 1 ? 's' : ''}`;
+            } else {
+                resultsCount.textContent = '';
+            }
+        }
+    </script>
+
+</body>
+</html>
